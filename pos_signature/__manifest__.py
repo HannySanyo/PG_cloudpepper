@@ -48,7 +48,7 @@
                                 ],
                             'point_of_sale.customer_display_assets': [
                                     'pos_signature/static/src/overrides/customer_display_overrides/customer_display.js',
-                                    'pos_signature/static/src/overrides/customer_display_overrides/customer_display.xml'
+                                    'pos_signature/static/src/overrides/customer_display_overrides/customer_display.xml',
                                     'pos_signature/static/src/overrides/customer_display_overrides/pos_order_update.js',
                                 ],
                             },
