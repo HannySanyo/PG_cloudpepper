@@ -18,17 +18,16 @@ patch(CustomerDisplay.prototype, {
         // Ensure state includes the order total with tax and sales tax
         this.state = useState({
             signature: '',
-            total: this.order ? this.order.get_total_with_tax() : 0,
-            salesTax: this.order ? this.order.get_total_tax() : 0
+            total: this.calculateTotalWithTax(),
+            salesTax: this.calculateTotalTax()
         });
         
         // Update state with total and sales tax dynamically
         effect(batched(() => {
-            if (this.order) {
-                this.state.total = this.order.get_total_with_tax();
-                this.state.salesTax = this.order.get_total_tax();
-            }
+            this.state.total = this.calculateTotalWithTax();
+            this.state.salesTax = this.calculateTotalTax();
         }));
+
 
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
@@ -50,6 +49,28 @@ patch(CustomerDisplay.prototype, {
             [this.state]
         );
         this.drawing = false;
+    },
+
+    // Helper method to calculate total with tax
+    calculateTotalWithTax() {
+        let total = 0;
+        if (this.order && this.order.orderlines) {
+            this.order.orderlines.each(line => {
+                total += line.get_price_with_tax(); // Assuming get_price_with_tax() exists for each line
+            });
+        }
+        return total;
+    },
+
+    // Helper method to calculate total tax
+    calculateTotalTax() {
+        let tax = 0;
+        if (this.order && this.order.orderlines) {
+            this.order.orderlines.each(line => {
+                tax += line.get_tax(); // Assuming get_tax() exists for each line
+            });
+        }
+        return tax;
     },
 
     onClickClear(){
