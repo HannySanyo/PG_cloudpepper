@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_signature.PaymentScreen" t-inherit="point_of_sale.PaymentScreenButtons" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('payment-buttons')]" position="inside">
+            <t t-if= "this.pos.config.enable_pos_signature">
+                <button id="signature" class="button js_invoice btn btn-light py-3 text-start rounded-0 border-bottom" t-att-class="{ 'highlight text-bg-primary': pos.get_order().is_signature_draw || pos.get_order().signature!=''}" 
+                    t-on-click.prevent="add_signature" style="width: 100%;text-align-last: center;margin-top: 3px;">
+                    <i class="fa fa-pencil me-2" />Add Signature 
+                </button>
+            </t>
+        </xpath>
+    </t>
+    <t t-name="pos_signature.OrderReceipt" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('before-footer')]" position="after">
+            <br />
+            <div style='height:10%;padding:5%;'>
+                <t t-if="props.data.signature">
+                    <img class="img o_image_64_max" t-attf-src="data:image/png;base64,{{props.data.signature}}" style="width:150px;height:100px;margin-left: 60%" />
+                </t>
+            </div>
+        </xpath>
+    </t>
+</templates>
