@@ -50,17 +50,24 @@ patch(CustomerDisplay.prototype, {
         }
     },
 
-    // Manually update total and sales tax
+    // Method to manually update total and sales tax
     updateTotals() {
         console.log("Updating totals...");
         this.state.total = this.calculateTotalWithTax();
         this.state.salesTax = this.calculateTotalTax();
+        console.log("Total:", this.state.total, "Sales Tax:", this.state.salesTax);
     },
 
     // Helper method to calculate total with tax
     calculateTotalWithTax() {
+        if (this.order && typeof this.order.get_total_with_tax === "function") {
+            console.log("Using get_total_with_tax method for total.");
+            return this.order.get_total_with_tax();
+        }
+
         let total = 0;
         if (this.order && this.order.orderlines) {
+            console.log("Orderlines found:", this.order.orderlines.models);
             this.order.orderlines.each(line => {
                 if (typeof line.get_price_with_tax === "function") {
                     total += line.get_price_with_tax();
@@ -70,6 +77,8 @@ patch(CustomerDisplay.prototype, {
                     console.warn("Unable to get price with tax for line", line);
                 }
             });
+        } else {
+            console.warn("No orderlines available.");
         }
         console.log("Calculated total with tax:", total);
         return total;
@@ -77,6 +86,11 @@ patch(CustomerDisplay.prototype, {
 
     // Helper method to calculate total tax
     calculateTotalTax() {
+        if (this.order && typeof this.order.get_total_tax === "function") {
+            console.log("Using get_total_tax method for sales tax.");
+            return this.order.get_total_tax();
+        }
+
         let tax = 0;
         if (this.order && this.order.orderlines) {
             this.order.orderlines.each(line => {
