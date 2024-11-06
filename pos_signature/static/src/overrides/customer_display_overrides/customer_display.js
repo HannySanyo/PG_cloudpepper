@@ -1,7 +1,3 @@
-/* Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) */
-/* See LICENSE file for full copyright and licensing details. */
-/* License URL : <https://store.webkul.com/license.html/> */
-
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
@@ -15,32 +11,28 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Ensure state includes the order total with tax and sales tax
+        // Initializing state with simple numeric values only
         this.state = useState({
             signature: '',
-            total: this.calculateTotalWithTax(),
-            salesTax: this.calculateTotalTax()
+            total: 0,
+            salesTax: 0,
         });
-        
-        // Update state with total and sales tax dynamically
+
+        // Calculate total and sales tax initially and on updates
         effect(batched(() => {
             this.state.total = this.calculateTotalWithTax();
             this.state.salesTax = this.calculateTotalTax();
         }));
 
-
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
-        window.signature  = this.signature
+        window.signature  = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+
         effect(
             batched(
-                ({
-                    signature
-                }) => {
-                    if (
-                        !signature
-                    ) {
+                ({ signature }) => {
+                    if (!signature) {
                         return;
                     }
                     this.sendSignatureData(signature);
@@ -48,10 +40,11 @@ patch(CustomerDisplay.prototype, {
             ),
             [this.state]
         );
+
         this.drawing = false;
     },
 
-    // Helper method to calculate total with tax
+    // Helper method to calculate total with tax (returns a numeric value)
     calculateTotalWithTax() {
         let total = 0;
         if (this.order && this.order.orderlines) {
@@ -62,7 +55,7 @@ patch(CustomerDisplay.prototype, {
         return total;
     },
 
-    // Helper method to calculate total tax
+    // Helper method to calculate total tax (returns a numeric value)
     calculateTotalTax() {
         let tax = 0;
         if (this.order && this.order.orderlines) {
@@ -73,9 +66,10 @@ patch(CustomerDisplay.prototype, {
         return tax;
     },
 
-    onClickClear(){
-        if(this.ctx)
+    onClickClear() {
+        if (this.ctx) {
             this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
+        }
         this.signature_done = false;
     },
 
@@ -89,22 +83,21 @@ patch(CustomerDisplay.prototype, {
         this.signature_done = false;
         this.lastX = 0;
         this.lastY = 0;
-        const rect = canvas.getBoundingClientRect(); // Get canvas position and size
-    
-        // Adjust the coordinates based on the canvas's scale
-        const scaleX = canvas.width / rect.width;   // Horizontal scale
-        const scaleY = canvas.height / rect.height; // Vertical scale
-    
+        const rect = canvas.getBoundingClientRect();
+
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
         let x, y;
         if (event.type.includes('touch')) {
-            const touch = event.touches[0]; // Handle the first touch point
-            x = (touch.clientX - rect.left) * scaleX; // Scale touch position
+            const touch = event.touches[0];
+            x = (touch.clientX - rect.left) * scaleX;
             y = (touch.clientY - rect.top) * scaleY;
         } else {
-            x = (event.clientX - rect.left) * scaleX; // Scale mouse position
+            x = (event.clientX - rect.left) * scaleX;
             y = (event.clientY - rect.top) * scaleY;
         }
-    
+
         return { x, y };
     },
 
@@ -116,44 +109,37 @@ patch(CustomerDisplay.prototype, {
 
     stopDrawing() {
         this.drawing = false;
-        this.ctx?.beginPath(); // Reset the path to avoid connecting lines between strokes
+        this.ctx?.beginPath();
     },
-    
-    // to draw on the canvas
+
     draw(event) {
         if (!this.drawing) return;
-    
+
         const { x, y } = this.getPosition(event);
         this.signature_done = true;
         this.ctx.lineTo(x, y);
         this.ctx.stroke();
-        this.ctx.beginPath(); // Reset the path
-        this.ctx.moveTo(x, y); // Move to the current position for the next line segment
-    
-        [this.lastX, this.lastY] = [x, y]; // Update the last coordinates
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+
+        [this.lastX, this.lastY] = [x, y];
     },
 
-    async sendSignatureData(signature){
+    async sendSignatureData(signature) {
         if (this.session.type === "local") {
-            this.customerDisplayChannel.postMessage({test:'test',signature: signature})
-        }
-        if (this.session.type === "remote") {
-            const data = await rpc(
+            this.customerDisplayChannel.postMessage({ test: 'test', signature: signature });
+        } else if (this.session.type === "remote") {
+            await rpc(
                 `/pos-customer-display/${this.session.config_id}`,
                 {
                     access_token: this.session.access_token,
                     signature: this.state.signature || false,
                 }
             );
-            // await this.orm.call("pos.config", "update_customer_signature",[
-            //     [this.session.config_id],
-            //     this.state.signature,
-            //     this.session.access_token
-            // ]);
         }
     },
 
-    onSubmitSignature(){
+    onSubmitSignature() {
         this.state.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
     }
-})
+});
