@@ -9,12 +9,15 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Initialize state with total and salesTax as simple values
+        // Initialize state with placeholders
         this.state = useState({
             signature: '',
-            total: 0,
-            salesTax: 0,
+            total: 50, // Placeholder for debugging
+            salesTax: 10, // Placeholder for debugging
         });
+
+        // Log order and orderlines details on component setup
+        console.log("Order on setup:", this.env.pos.get_order());
 
         // Service and canvas setup
         this.orm = useService("orm");
@@ -39,72 +42,23 @@ patch(CustomerDisplay.prototype, {
         this.drawing = false;
     },
 
-    // Method to handle order updates and recalculate totals
     handleOrderUpdate() {
         const currentOrder = this.env.pos.get_order();
         if (currentOrder) {
             this.order = currentOrder;
+            console.log("Order updated:", this.order);  // Debugging log
+            console.log("Orderlines:", this.order?.orderlines);  // Debugging log
             this.updateTotals();
         } else {
             console.warn("No current order available.");
         }
     },
 
-    // Method to manually update total and sales tax
+    // Simplified updateTotals to hardcode placeholder values
     updateTotals() {
-        console.log("Updating totals...");
-        this.state.total = this.calculateTotalWithTax();
-        this.state.salesTax = this.calculateTotalTax();
-        console.log("Total:", this.state.total, "Sales Tax:", this.state.salesTax);
-    },
-
-    // Helper method to calculate total with tax
-    calculateTotalWithTax() {
-        if (this.order && typeof this.order.get_total_with_tax === "function") {
-            console.log("Using get_total_with_tax method for total.");
-            return this.order.get_total_with_tax();
-        }
-
-        let total = 0;
-        if (this.order && this.order.orderlines) {
-            console.log("Orderlines found:", this.order.orderlines.models);
-            this.order.orderlines.each(line => {
-                if (typeof line.get_price_with_tax === "function") {
-                    total += line.get_price_with_tax();
-                } else if (line.price_with_tax) {
-                    total += line.price_with_tax;
-                } else {
-                    console.warn("Unable to get price with tax for line", line);
-                }
-            });
-        } else {
-            console.warn("No orderlines available.");
-        }
-        console.log("Calculated total with tax:", total);
-        return total;
-    },
-
-    // Helper method to calculate total tax
-    calculateTotalTax() {
-        if (this.order && typeof this.order.get_total_tax === "function") {
-            console.log("Using get_total_tax method for sales tax.");
-            return this.order.get_total_tax();
-        }
-
-        let tax = 0;
-        if (this.order && this.order.orderlines) {
-            this.order.orderlines.each(line => {
-                if (typeof line.get_tax === "function") {
-                    tax += line.get_tax();
-                } else if (line.tax) {
-                    tax += line.tax;
-                } else {
-                    console.warn("Unable to get tax for line", line);
-                }
-            });
-        }
-        console.log("Calculated total tax:", tax);
-        return tax;
+        this.state.total = 50; // Placeholder to check if rendering works
+        this.state.salesTax = 10; // Placeholder to check if rendering works
+        console.log("Setting placeholders. Total:", this.state.total, "Sales Tax:", this.state.salesTax);
     },
 
     onClickClear() {
@@ -112,58 +66,6 @@ patch(CustomerDisplay.prototype, {
             this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
         }
         this.signature_done = false;
-    },
-
-    getPosition(event) {
-        const canvas = this.my_canvas.el;
-        this.ctx = canvas.getContext('2d');
-        this.ctx.lineWidth = 1.7;
-        this.ctx.lineCap = 'round';
-        this.ctx.strokeStyle = '#222222';
-        this.ctx.lineJoin = 'round';
-        this.signature_done = false;
-        this.lastX = 0;
-        this.lastY = 0;
-        const rect = canvas.getBoundingClientRect();
-
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-
-        let x, y;
-        if (event.type.includes('touch')) {
-            const touch = event.touches[0];
-            x = (touch.clientX - rect.left) * scaleX;
-            y = (touch.clientY - rect.top) * scaleY;
-        } else {
-            x = (event.clientX - rect.left) * scaleX;
-            y = (event.clientY - rect.top) * scaleY;
-        }
-
-        return { x, y };
-    },
-
-    startDrawing(event) {
-        this.drawing = true;
-        const { x, y } = this.getPosition(event);
-        [this.lastX, this.lastY] = [x, y];
-    },
-
-    stopDrawing() {
-        this.drawing = false;
-        this.ctx?.beginPath();
-    },
-
-    draw(event) {
-        if (!this.drawing) return;
-
-        const { x, y } = this.getPosition(event);
-        this.signature_done = true;
-        this.ctx.lineTo(x, y);
-        this.ctx.stroke();
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, y);
-
-        [this.lastX, this.lastY] = [x, y];
     },
 
     async sendSignatureData(signature) {
