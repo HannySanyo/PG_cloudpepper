@@ -1,7 +1,7 @@
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
-import { useRef, onMounted, onWillUnmount } from "@odoo/owl";
+import { useRef, onWillUnmount } from "@odoo/owl";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
 
@@ -22,23 +22,34 @@ patch(CustomerDisplay.prototype, {
         window.signature = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Bind to orderlines changes
-        this.order = this.env.pos.get_order();
-        if (this.order) {
-            this.order.orderlines.on('change', this, this.updateTotals);
+        // Check for the presence of this.env.pos and get_order method
+        if (this.env?.pos?.get_order) {
+            this.order = this.env.pos.get_order();
+            if (this.order) {
+                // Bind updateTotals to changes in orderlines
+                this.order.orderlines.on('change', this, this.updateTotals);
+            }
+        } else {
+            console.warn("POS order not found. Skipping orderlines listener.");
         }
 
         this.drawing = false;
 
         onWillUnmount(() => {
             // Remove event listener to prevent memory leaks
-            if (this.order) {
+            if (this.order && this.order.orderlines) {
                 this.order.orderlines.off('change', this, this.updateTotals);
             }
         });
     },
 
-    // Calculate total with tax
+    // Method to manually update total and sales tax when needed
+    updateTotals() {
+        this.state.total = this.calculateTotalWithTax();
+        this.state.salesTax = this.calculateTotalTax();
+    },
+
+    // Helper method to calculate total with tax
     calculateTotalWithTax() {
         let total = 0;
         if (this.order && this.order.orderlines) {
@@ -49,7 +60,7 @@ patch(CustomerDisplay.prototype, {
         return total;
     },
 
-    // Calculate total tax
+    // Helper method to calculate total tax
     calculateTotalTax() {
         let tax = 0;
         if (this.order && this.order.orderlines) {
@@ -58,12 +69,6 @@ patch(CustomerDisplay.prototype, {
             });
         }
         return tax;
-    },
-
-    // Update totals method
-    updateTotals() {
-        this.state.total = this.calculateTotalWithTax();
-        this.state.salesTax = this.calculateTotalTax();
     },
 
     onClickClear() {
