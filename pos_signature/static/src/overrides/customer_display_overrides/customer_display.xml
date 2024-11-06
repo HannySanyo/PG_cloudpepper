@@ -1,75 +1,158 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<templates id="template" xml:space="preserve">
-    <t t-name="pos_signature.CustomerDisplay" t-inherit="point_of_sale.CustomerDisplay" t-inherit-mode="extension">
-        <xpath expr="//OrderWidget/following-sibling::div[@t-else]" position="replace">
-        </xpath>
-        <xpath expr="//OrderWidget" position="replace">
-            <t t-if="order.waiting_for_signature">
-                <div class="d-flex flex-column flex-grow-1 rounded-3 bg-white overflow-hidden">
-                    <h3 class="bg-secondary px-2 py-1">Please sign</h3>
-                    <canvas class="m-2" id="paint" t-ref="my_canvas"
-                        t-on-mousedown.prevent="startDrawing"
-                        t-on-mousemove.prevent="draw"
-                        t-on-mouseup.prevent="stopDrawing"
-                        t-on-mouseout.prevent="stopDrawing"
-                        t-on-touchstart.prevent="startDrawing"
-                        t-on-touchmove.prevent="draw"
-                        t-on-touchend.prevent="stopDrawing"
-                        style="cursor:crosshair; background-color:white; border: 2px dotted #CCCCCC; border-radius: 15px; width: 85%; position:relative; left: 50%; transform: translate(-50%)"/>
-                    <h3 class="bg-secondary m-2 py-1" style="background-color:white; width: 85%; position:relative; left: 50%; transform: translate(-50%)">
-                        Your total is <t t-esc="order.amount" />. Please sign to accept this total and agree to our
-                        <a t-if="order" t-att-href="order.terms_conditions_link" target="_blank">Terms and Conditions</a>.
-                    </h3>
-                    <div style="display: flex;
-                        justify-content: center;
-                        margin-top: 20px;
-                        gap: 20px;">
-                        <button t-on-click='onSubmitSignature' class="submit-signature" style="width: 100px;
-                            background-color: #343A40;
-                            color: white;
-                            padding: 7px 15px;
-                            border: none;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            font-size: 16px;"
-                            >Submit</button>
-                        <button class="clear-button" t-on-click="onClickClear" style="background-color: none;
-                            width: 100px;
-                            color: #343A40;
-                            padding: 7px 15px;
-                            border: 1px solid black;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            font-size: 16px;">Clear</button>
-                    </div>
-                </div>
-            </t>
-            <t t-else="">
-                <OrderWidget t-if="!order.finalized and !order.waiting_for_signature" lines="order.lines" t-slot-scope="scope" class="'gap-0 p-0 mx-2 pb-3 bg-view'" style="'scroll-snap-type: y mandatory;'" generalNote="order.generalNote or ''">
-                    <Orderline line="scope.line" class="{
-                            'o_customer_display_orderline bg-white fs-3 rounded-0': true,
-                        }"
-                    />
-                    <t t-set-slot="emptyCart">
-                        <div class="d-flex flex-column align-items-center justify-content-center h-100 w-100">
-                            <h1 class="display-2 w-75 mt-2 fw-bold text-center text-muted">Welcome.</h1>
-                        </div>
-                    </t>
-                </OrderWidget>
-                <div t-else="" class="d-flex flex-column align-items-center justify-content-center h-100 w-100">
-                    <h1 class="display-2 w-75 mt-2 fw-bold text-center text-muted">Thank you.</h1>
-                </div>
+/* Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) */
+/* See LICENSE file for full copyright and licensing details. */
+/* License URL : <https://store.webkul.com/license.html/> */
 
-                <!-- Order Summary with Order Total and Sales Tax -->
-                <div class="order-summary">
-                    <div class="order-total">
-                        <span>Order Total: <t t-esc="state.total" /></span>
-                    </div>
-                    <div class="sales-tax">
-                        <span>Sales Tax: <t t-esc="state.salesTax" /></span>
-                    </div>
-                </div>
-            </t>
-        </xpath>
-    </t>
-</templates>
+import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
+import { patch } from "@web/core/utils/patch";
+import { useState } from "@odoo/owl";
+import { batched } from "@web/core/utils/timing";
+import { effect } from "@web/core/utils/reactive";
+import { useRef } from "@odoo/owl";
+import { rpc } from "@web/core/network/rpc";
+import { useService } from "@web/core/utils/hooks";
+
+patch(CustomerDisplay.prototype, {
+    setup() {
+        super.setup(...arguments);
+
+        // Ensure state includes the order total with tax and sales tax
+        this.state = useState({
+            signature: '',
+            total: this.calculateTotalWithTax(),
+            salesTax: this.calculateTotalTax()
+        });
+        
+        // Update state with total and sales tax dynamically
+        effect(batched(() => {
+            this.state.total = this.calculateTotalWithTax();
+            this.state.salesTax = this.calculateTotalTax();
+        }));
+
+        // Helper method to calculate total with tax
+        calculateTotalWithTax() {
+            let total = 0;
+            if (this.order && this.order.orderlines) {
+                this.order.orderlines.each(line => {
+                    total += line.get_price_with_tax(); // Assuming get_price_with_tax() exists for each line
+                });
+            }
+            return total;
+        };
+
+        // Helper method to calculate total tax
+        calculateTotalTax() {
+            let tax = 0;
+            if (this.order && this.order.orderlines) {
+                this.order.orderlines.each(line => {
+                    tax += line.get_tax(); // Assuming get_tax() exists for each line
+                });
+            }
+            return tax;
+        };
+
+        this.orm = useService("orm");
+        this.my_canvas = useRef('my_canvas');
+        window.signature  = this.signature
+        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        effect(
+            batched(
+                ({
+                    signature
+                }) => {
+                    if (
+                        !signature
+                    ) {
+                        return;
+                    }
+                    this.sendSignatureData(signature);
+                }
+            ),
+            [this.state]
+        );
+        this.drawing = false;
+    },
+
+    onClickClear(){
+        if(this.ctx)
+            this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
+        this.signature_done = false;
+    },
+
+    getPosition(event) {
+        const canvas = this.my_canvas.el;
+        this.ctx = canvas.getContext('2d');
+        this.ctx.lineWidth = 1.7;
+        this.ctx.lineCap = 'round';
+        this.ctx.strokeStyle = '#222222';
+        this.ctx.lineJoin = 'round';
+        this.signature_done = false;
+        this.lastX = 0;
+        this.lastY = 0;
+        const rect = canvas.getBoundingClientRect(); // Get canvas position and size
+    
+        // Adjust the coordinates based on the canvas's scale
+        const scaleX = canvas.width / rect.width;   // Horizontal scale
+        const scaleY = canvas.height / rect.height; // Vertical scale
+    
+        let x, y;
+        if (event.type.includes('touch')) {
+            const touch = event.touches[0]; // Handle the first touch point
+            x = (touch.clientX - rect.left) * scaleX; // Scale touch position
+            y = (touch.clientY - rect.top) * scaleY;
+        } else {
+            x = (event.clientX - rect.left) * scaleX; // Scale mouse position
+            y = (event.clientY - rect.top) * scaleY;
+        }
+    
+        return { x, y };
+    },
+
+    startDrawing(event) {
+        this.drawing = true;
+        const { x, y } = this.getPosition(event);
+        [this.lastX, this.lastY] = [x, y];
+    },
+
+    stopDrawing() {
+        this.drawing = false;
+        this.ctx?.beginPath(); // Reset the path to avoid connecting lines between strokes
+    },
+    
+    // to draw on the canvas
+    draw(event) {
+        if (!this.drawing) return;
+    
+        const { x, y } = this.getPosition(event);
+        this.signature_done = true;
+        this.ctx.lineTo(x, y);
+        this.ctx.stroke();
+        this.ctx.beginPath(); // Reset the path
+        this.ctx.moveTo(x, y); // Move to the current position for the next line segment
+    
+        [this.lastX, this.lastY] = [x, y]; // Update the last coordinates
+    },
+
+    async sendSignatureData(signature){
+        if (this.session.type === "local") {
+            this.customerDisplayChannel.postMessage({test:'test',signature: signature})
+        }
+        if (this.session.type === "remote") {
+            const data = await rpc(
+                `/pos-customer-display/${this.session.config_id}`,
+                {
+                    access_token: this.session.access_token,
+                    signature: this.state.signature || false,
+                }
+            );
+            // await this.orm.call("pos.config", "update_customer_signature",[
+            //     [this.session.config_id],
+            //     this.state.signature,
+            //     this.session.access_token
+            // ]);
+        }
+    },
+
+    onSubmitSignature(){
+        this.state.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
+    }
+})
