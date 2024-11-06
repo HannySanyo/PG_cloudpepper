@@ -2,10 +2,12 @@
 <!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
 <!-- See LICENSE file for full copyright and licensing details. -->
 <!-- License URL : <https://store.webkul.com/license.html/> -->
-<templates id="template" xml:space="preserve">
-    <t t-name="pos_signature.CustomerDisplay" t-inherit="point_of_sale.CustomerDisplay" t-inherit-mode="extension">
+<odoo>
+    <template id="customer_display_custom" inherit_id="point_of_sale.CustomerDisplay" name="Custom Customer Display">
+        <!-- Modify the section after OrderWidget to add new content -->
         <xpath expr="//OrderWidget/following-sibling::div[@t-else]" position="replace">
         </xpath>
+        
         <xpath expr="//OrderWidget" position="replace">
             <t t-if="order.waiting_for_signature">
                 <div class="d-flex flex-column flex-grow-1 rounded-3 bg-white overflow-hidden">
@@ -49,7 +51,6 @@
             </t>
             <t t-else="">
                 <OrderWidget t-if="!order.finalized and !order.waiting_for_signature" lines="order.lines" t-slot-scope="scope" class="'gap-0 p-0 mx-2 pb-3 bg-view'" style="'scroll-snap-type: y mandatory;'" generalNote="order.generalNote or ''">
-
                     <Orderline line="scope.line" class="{
                             'o_customer_display_orderline bg-white fs-3 rounded-0': true,
                         }"
@@ -77,5 +78,5 @@
                 </div>
             </div>
         </xpath>
-    </t>
-</templates>
+    </template>
+</odoo>
