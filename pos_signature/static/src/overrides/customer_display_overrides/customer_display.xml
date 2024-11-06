@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
-<!-- See LICENSE file for full copyright and licensing details. -->
-<!-- License URL : <https://store.webkul.com/license.html/> -->
 <odoo>
-    <template id="customer_display_custom" inherit_id="point_of_sale.CustomerDisplay" name="Custom Customer Display">
-        <!-- Modify the section after OrderWidget to add new content -->
+    <template id="customer_display_custom" inherit_id="point_of_sale.customer_display_index" name="Custom Customer Display">
         <xpath expr="//OrderWidget/following-sibling::div[@t-else]" position="replace">
         </xpath>
         
