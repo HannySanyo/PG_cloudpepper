@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<odoo>
+    <template id="pos_signature.report_invoice_document" inherit_id="account.report_invoice_document">
+        <xpath expr="//div[hasclass('page')]" position="after">
+            <t t-set="config_id" t-value="request.env['pos.order'].search([('name','=',o.ref)]).session_id.config_id.id"/>
+            <t t-set="check" t-value="request.env['pos.config'].check_for_invoice(config_id)"/>
+            <t t-if="check == True">
+                <t t-set="order" t-value="request.env['pos.order'].search([('name','=',o.ref)])"/>
+                <t t-if="order.signature">
+                    <span style="margin-left: 60%" >Signature: </span>
+                    <img class="img o_image_64_max" t-att-src="image_data_uri(order.signature)" style="width:150px;height:100px;margin-left: 70%" />
+                </t>
+            </t>
+        </xpath>
+    </template>
+</odoo>

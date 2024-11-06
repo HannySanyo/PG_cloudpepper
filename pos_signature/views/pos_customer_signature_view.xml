@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inheriting the POS form view to add signature functionality -->
+    <record id="view_pos_pos_form_inherit" model="ir.ui.view">
+        <field name="name">POS view</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='order_total']" position="inside">
+                <field name="signature"
+                       string="Signature"
+                       class="oe_subtotal_footer_separator"
+                       widget="image"
+                       options="{'size': [150, 150]}"
+                       invisible="signature == 'True'"
+                       readonly="state != 'draft'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Template for POS Customer Display with Order Total and Sales Tax -->
+    <template id="point_of_sale.customer_display_index" name="POS Customer Display">
+        &lt;!DOCTYPE html&gt;
+        <html>
+            <head>
+                <!-- Add any additional required head elements here -->
+            </head>
+            <body>
+                <!-- Order summary display including sales tax -->
+                <div class="order-summary">
+                    <div class="order-total">
+                        <span>Order Total: <t t-esc="props.data.total" /></span>
+                    </div>
+                    <div class="sales-tax">
+                        <span>Sales Tax: <t t-esc="props.data.sales_tax" /></span>
+                    </div>
+                </div>
+            </body>
+        </html>
+    </template>
+</odoo>
