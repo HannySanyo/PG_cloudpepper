@@ -1,7 +1,7 @@
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
-import { useRef } from "@odoo/owl";
+import { useRef, onMounted, onWillUnmount } from "@odoo/owl";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
 
@@ -9,50 +9,63 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Initialize state with total and salesTax as computed values
+        // Initialize state with simple values
         this.state = useState({
             signature: '',
             total: this.calculateTotalWithTax(),
             salesTax: this.calculateTotalTax(),
         });
 
-        // Service and canvas setup (leaving these unchanged)
+        // Service and canvas setup
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
         window.signature = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+
+        // Bind to orderlines changes
+        this.order = this.env.pos.get_order();
+        if (this.order) {
+            this.order.orderlines.on('change', this, this.updateTotals);
+        }
+
         this.drawing = false;
+
+        onWillUnmount(() => {
+            // Remove event listener to prevent memory leaks
+            if (this.order) {
+                this.order.orderlines.off('change', this, this.updateTotals);
+            }
+        });
     },
 
-    // Method to manually update total and sales tax when needed
-    updateTotals() {
-        this.state.total = this.calculateTotalWithTax();
-        this.state.salesTax = this.calculateTotalTax();
-    },
-
-    // Helper method to calculate total with tax
+    // Calculate total with tax
     calculateTotalWithTax() {
         let total = 0;
         if (this.order && this.order.orderlines) {
             this.order.orderlines.each(line => {
-                total += line.get_price_with_tax(); // Assumes get_price_with_tax() exists for each line
+                total += line.get_price_with_tax(); // Assuming get_price_with_tax() exists for each line
             });
         }
         return total;
     },
 
-    // Helper method to calculate total tax
+    // Calculate total tax
     calculateTotalTax() {
         let tax = 0;
         if (this.order && this.order.orderlines) {
             this.order.orderlines.each(line => {
-                tax += line.get_tax(); // Assumes get_tax() exists for each line
+                tax += line.get_tax(); // Assuming get_tax() exists for each line
             });
         }
         return tax;
     },
 
-    // Signature methods remain unchanged
+    // Update totals method
+    updateTotals() {
+        this.state.total = this.calculateTotalWithTax();
+        this.state.salesTax = this.calculateTotalTax();
+    },
+
     onClickClear() {
         if (this.ctx) {
             this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
