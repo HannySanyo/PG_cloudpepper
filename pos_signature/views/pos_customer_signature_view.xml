@@ -18,17 +18,16 @@
         </field>
     </record>
 
-    <!-- Extending the existing customer display template to add order total and sales tax -->
-    <template id="point_of_sale.customer_display_index" inherit_id="point_of_sale.customer_display_index" name="POS Customer Display">
-        <xpath expr="//body" position="inside">
-            <div class="order-summary">
-                <div class="order-total">
-                    <span>Order Total: <t t-esc="total" /></span>
-                </div>
-                <div class="sales-tax">
-                    <span>Sales Tax: <t t-esc="sales_tax" /></span>
-                </div>
-            </div>
-        </xpath>
-    </template>
+    <t t-if="order">
+        <!-- Existing total display -->
+        <div class="total">
+            <span>Total: </span>
+            <span t-esc="order.get_total_with_tax()"/>
+        </div>
+        <!-- New tax display -->
+        <div class="tax">
+            <span>Tax: </span>
+            <span t-esc="order.get_total_tax()"/>
+        </div>
+    </t>
 </odoo>
