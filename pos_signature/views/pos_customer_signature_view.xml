@@ -29,10 +29,10 @@
                 <!-- Order summary display including sales tax -->
                 <div class="order-summary">
                     <div class="order-total">
-                        <span>Order Total: <t t-esc="props.data.total" /></span>
+                        <span>Order Total: <t t-esc="total" /></span>
                     </div>
                     <div class="sales-tax">
-                        <span>Sales Tax: <t t-esc="props.data.sales_tax" /></span>
+                        <span>Sales Tax: <t t-esc="sales_tax" /></span>
                     </div>
                 </div>
             </body>
