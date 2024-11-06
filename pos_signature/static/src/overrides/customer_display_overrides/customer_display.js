@@ -1,7 +1,7 @@
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
-import { useRef, onWillUnmount } from "@odoo/owl";
+import { useRef, onWillUnmount, onMounted } from "@odoo/owl";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
 
@@ -16,23 +16,28 @@ patch(CustomerDisplay.prototype, {
             salesTax: 10, // Placeholder for debugging
         });
 
-        // Log order and orderlines details on component setup
-        console.log("Order on setup:", this.env.pos.get_order());
-
         // Service and canvas setup
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
         window.signature = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Attach to POS model events
-        if (this.env.pos) {
-            this.env.pos.on("new_order", this, this.handleOrderUpdate);
-            this.env.pos.on("update_order", this, this.handleOrderUpdate);
-        }
+        // Delayed access to POS model and event setup on mount
+        onMounted(() => {
+            if (this.env.pos) {
+                console.log("POS environment found on mount");
+                this.env.pos.on("new_order", this, this.handleOrderUpdate);
+                this.env.pos.on("update_order", this, this.handleOrderUpdate);
 
+                // Attempt to access current order now that we're mounted
+                this.handleOrderUpdate();
+            } else {
+                console.warn("POS environment not found on mount");
+            }
+        });
+
+        // Cleanup on unmount
         onWillUnmount(() => {
-            // Cleanup to avoid memory leaks
             if (this.env.pos) {
                 this.env.pos.off("new_order", this, this.handleOrderUpdate);
                 this.env.pos.off("update_order", this, this.handleOrderUpdate);
@@ -43,7 +48,7 @@ patch(CustomerDisplay.prototype, {
     },
 
     handleOrderUpdate() {
-        const currentOrder = this.env.pos.get_order();
+        const currentOrder = this.env.pos ? this.env.pos.get_order() : null;
         if (currentOrder) {
             this.order = currentOrder;
             console.log("Order updated:", this.order);  // Debugging log
