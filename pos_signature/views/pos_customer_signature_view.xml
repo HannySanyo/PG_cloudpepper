@@ -18,24 +18,15 @@
         </field>
     </record>
 
-    <!-- Template for POS Customer Display with Order Total and Sales Tax -->
-    <template id="point_of_sale.customer_display_index" name="POS Customer Display">
-        &lt;!DOCTYPE html&gt;
-        <html>
-            <head>
-                <!-- Add any additional required head elements here -->
-            </head>
-            <body>
-                <!-- Order summary display including sales tax -->
-                <div class="order-summary">
-                    <div class="order-total">
-                        <span>Order Total: <t t-esc="total" /></span>
-                    </div>
-                    <div class="sales-tax">
-                        <span>Sales Tax: <t t-esc="sales_tax" /></span>
-                    </div>
-                </div>
-            </body>
-        </html>
+    <!-- Extending the existing customer display template to add order total and sales tax -->
+    <template id="point_of_sale.customer_display_index" inherit_id="point_of_sale.customer_display_index" name="POS Customer Display with Tax">
+        <xpath expr="//div[@class='order-summary']" position="inside">
+            <div class="order-total">
+                <span>Order Total: <t t-esc="total" /></span>
+            </div>
+            <div class="sales-tax">
+                <span>Sales Tax: <t t-esc="sales_tax" /></span>
+            </div>
+        </xpath>
     </template>
 </odoo>
