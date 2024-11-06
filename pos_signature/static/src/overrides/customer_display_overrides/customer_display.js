@@ -1,7 +1,7 @@
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
-import { useRef, onWillUnmount } from "@odoo/owl";
+import { useRef, onWillUnmount, onMounted } from "@odoo/owl";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
 
@@ -9,11 +9,11 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Initialize state with simple values
+        // Initialize state
         this.state = useState({
             signature: '',
-            total: this.calculateTotalWithTax(),
-            salesTax: this.calculateTotalTax(),
+            total: 0,
+            salesTax: 0,
         });
 
         // Service and canvas setup
@@ -22,28 +22,32 @@ patch(CustomerDisplay.prototype, {
         window.signature = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Check for the presence of this.env.pos and get_order method
-        if (this.env?.pos?.get_order) {
-            this.order = this.env.pos.get_order();
-            if (this.order) {
-                // Bind updateTotals to changes in orderlines
-                this.order.orderlines.on('change', this, this.updateTotals);
-            }
-        } else {
-            console.warn("POS order not found. Skipping orderlines listener.");
-        }
+        // Bind to POS event bus to listen for order updates
+        const bus = this.env.bus;
+        bus.on("new_order", this, this.handleOrderUpdate);
+        bus.on("update_order", this, this.handleOrderUpdate);
+
+        // Cleanup listeners on unmount
+        onWillUnmount(() => {
+            bus.off("new_order", this, this.handleOrderUpdate);
+            bus.off("update_order", this, this.handleOrderUpdate);
+        });
 
         this.drawing = false;
-
-        onWillUnmount(() => {
-            // Remove event listener to prevent memory leaks
-            if (this.order && this.order.orderlines) {
-                this.order.orderlines.off('change', this, this.updateTotals);
-            }
-        });
     },
 
-    // Method to manually update total and sales tax when needed
+    // Method to handle order updates and recalculate totals
+    handleOrderUpdate() {
+        const currentOrder = this.env.pos.get_order();
+        if (currentOrder) {
+            this.order = currentOrder;
+            this.updateTotals();
+        } else {
+            console.warn("No current order available.");
+        }
+    },
+
+    // Method to manually update total and sales tax
     updateTotals() {
         console.log("Updating totals...");
         this.state.total = this.calculateTotalWithTax();
@@ -59,7 +63,6 @@ patch(CustomerDisplay.prototype, {
                 if (typeof line.get_price_with_tax === "function") {
                     total += line.get_price_with_tax();
                 } else if (line.price_with_tax) {
-                    // Fallback if get_price_with_tax method is not available
                     total += line.price_with_tax;
                 } else {
                     console.warn("Unable to get price with tax for line", line);
@@ -80,7 +83,6 @@ patch(CustomerDisplay.prototype, {
                 if (typeof line.get_tax === "function") {
                     tax += line.get_tax();
                 } else if (line.tax) {
-                    // Fallback if get_tax method is not available
                     tax += line.tax;
                 } else {
                     console.warn("Unable to get tax for line", line);
