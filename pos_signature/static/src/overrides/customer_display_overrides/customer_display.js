@@ -1,7 +1,7 @@
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
-import { useRef, onWillUnmount, onMounted } from "@odoo/owl";
+import { useRef, onWillUnmount } from "@odoo/owl";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
 
@@ -9,7 +9,7 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Initialize state
+        // Initialize state with total and salesTax as simple values
         this.state = useState({
             signature: '',
             total: 0,
@@ -22,15 +22,18 @@ patch(CustomerDisplay.prototype, {
         window.signature = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Bind to POS event bus to listen for order updates
-        const bus = this.env.bus;
-        bus.on("new_order", this, this.handleOrderUpdate);
-        bus.on("update_order", this, this.handleOrderUpdate);
+        // Attach to POS model events
+        if (this.env.pos) {
+            this.env.pos.on("new_order", this, this.handleOrderUpdate);
+            this.env.pos.on("update_order", this, this.handleOrderUpdate);
+        }
 
-        // Cleanup listeners on unmount
         onWillUnmount(() => {
-            bus.off("new_order", this, this.handleOrderUpdate);
-            bus.off("update_order", this, this.handleOrderUpdate);
+            // Cleanup to avoid memory leaks
+            if (this.env.pos) {
+                this.env.pos.off("new_order", this, this.handleOrderUpdate);
+                this.env.pos.off("update_order", this, this.handleOrderUpdate);
+            }
         });
 
         this.drawing = false;
@@ -47,7 +50,7 @@ patch(CustomerDisplay.prototype, {
         }
     },
 
-    // Method to manually update total and sales tax
+    // Manually update total and sales tax
     updateTotals() {
         console.log("Updating totals...");
         this.state.total = this.calculateTotalWithTax();
@@ -58,7 +61,6 @@ patch(CustomerDisplay.prototype, {
     calculateTotalWithTax() {
         let total = 0;
         if (this.order && this.order.orderlines) {
-            console.log("Orderlines found:", this.order.orderlines.models);
             this.order.orderlines.each(line => {
                 if (typeof line.get_price_with_tax === "function") {
                     total += line.get_price_with_tax();
@@ -68,8 +70,6 @@ patch(CustomerDisplay.prototype, {
                     console.warn("Unable to get price with tax for line", line);
                 }
             });
-        } else {
-            console.warn("No orderlines available.");
         }
         console.log("Calculated total with tax:", total);
         return total;
