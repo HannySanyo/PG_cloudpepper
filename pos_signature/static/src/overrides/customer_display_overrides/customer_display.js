@@ -1,8 +1,6 @@
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
-import { batched } from "@web/core/utils/timing";
-import { effect } from "@web/core/utils/reactive";
 import { useRef } from "@odoo/owl";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
@@ -11,61 +9,50 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Initializing state with simple numeric values only
+        // Initialize state with total and salesTax as computed values
         this.state = useState({
             signature: '',
-            total: 0,
-            salesTax: 0,
+            total: this.calculateTotalWithTax(),
+            salesTax: this.calculateTotalTax(),
         });
 
-        // Calculate total and sales tax initially and on updates
-        effect(batched(() => {
-            this.state.total = this.calculateTotalWithTax();
-            this.state.salesTax = this.calculateTotalTax();
-        }));
-
+        // Service and canvas setup (leaving these unchanged)
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
-        window.signature  = this.signature;
+        window.signature = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-
-        effect(
-            batched(
-                ({ signature }) => {
-                    if (!signature) {
-                        return;
-                    }
-                    this.sendSignatureData(signature);
-                }
-            ),
-            [this.state]
-        );
-
         this.drawing = false;
     },
 
-    // Helper method to calculate total with tax (returns a numeric value)
+    // Method to manually update total and sales tax when needed
+    updateTotals() {
+        this.state.total = this.calculateTotalWithTax();
+        this.state.salesTax = this.calculateTotalTax();
+    },
+
+    // Helper method to calculate total with tax
     calculateTotalWithTax() {
         let total = 0;
         if (this.order && this.order.orderlines) {
             this.order.orderlines.each(line => {
-                total += line.get_price_with_tax(); // Assuming get_price_with_tax() exists for each line
+                total += line.get_price_with_tax(); // Assumes get_price_with_tax() exists for each line
             });
         }
         return total;
     },
 
-    // Helper method to calculate total tax (returns a numeric value)
+    // Helper method to calculate total tax
     calculateTotalTax() {
         let tax = 0;
         if (this.order && this.order.orderlines) {
             this.order.orderlines.each(line => {
-                tax += line.get_tax(); // Assuming get_tax() exists for each line
+                tax += line.get_tax(); // Assumes get_tax() exists for each line
             });
         }
         return tax;
     },
 
+    // Signature methods remain unchanged
     onClickClear() {
         if (this.ctx) {
             this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
