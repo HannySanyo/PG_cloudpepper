@@ -45,6 +45,7 @@ patch(CustomerDisplay.prototype, {
 
     // Method to manually update total and sales tax when needed
     updateTotals() {
+        console.log("Updating totals...");
         this.state.total = this.calculateTotalWithTax();
         this.state.salesTax = this.calculateTotalTax();
     },
@@ -53,10 +54,21 @@ patch(CustomerDisplay.prototype, {
     calculateTotalWithTax() {
         let total = 0;
         if (this.order && this.order.orderlines) {
+            console.log("Orderlines found:", this.order.orderlines.models);
             this.order.orderlines.each(line => {
-                total += line.get_price_with_tax(); // Assuming get_price_with_tax() exists for each line
+                if (typeof line.get_price_with_tax === "function") {
+                    total += line.get_price_with_tax();
+                } else if (line.price_with_tax) {
+                    // Fallback if get_price_with_tax method is not available
+                    total += line.price_with_tax;
+                } else {
+                    console.warn("Unable to get price with tax for line", line);
+                }
             });
+        } else {
+            console.warn("No orderlines available.");
         }
+        console.log("Calculated total with tax:", total);
         return total;
     },
 
@@ -65,9 +77,17 @@ patch(CustomerDisplay.prototype, {
         let tax = 0;
         if (this.order && this.order.orderlines) {
             this.order.orderlines.each(line => {
-                tax += line.get_tax(); // Assuming get_tax() exists for each line
+                if (typeof line.get_tax === "function") {
+                    tax += line.get_tax();
+                } else if (line.tax) {
+                    // Fallback if get_tax method is not available
+                    tax += line.tax;
+                } else {
+                    console.warn("Unable to get tax for line", line);
+                }
             });
         }
+        console.log("Calculated total tax:", tax);
         return tax;
     },
 
