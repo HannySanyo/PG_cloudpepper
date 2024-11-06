@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <template id="customer_display_custom" inherit_id="point_of_sale.customer_display_index" name="Custom Customer Display">
+    <template id="pos_signature_customer_display_custom" inherit_id="point_of_sale.customer_display_index" name="POS Signature Custom Customer Display">
+        
+        <!-- Replace content within OrderWidget and following divs -->
         <xpath expr="//OrderWidget/following-sibling::div[@t-else]" position="replace">
         </xpath>
         
