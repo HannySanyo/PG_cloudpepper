@@ -1,7 +1,4 @@
-/* Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) */
-/* See LICENSE file for full copyright and licensing details. */
-/* License URL : <https://store.webkul.com/license.html/> */
-
+/** customer_display.js */
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
@@ -11,7 +8,7 @@ import { useRef } from "@odoo/owl";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
 
-patch(CustomerDisplay.prototype, "pos-signature-v-18.CustomerDisplayPatch", {
+patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
