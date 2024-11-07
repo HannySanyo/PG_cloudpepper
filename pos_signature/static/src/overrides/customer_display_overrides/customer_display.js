@@ -57,10 +57,60 @@ patch(CustomerDisplay.prototype, {
     get salesTaxDisplay() {
         return this.state.salesTax ? this.state.salesTax.toFixed(2) : '0.00';
     }
-    getPosition(event) { /* Existing code */ },
-    startDrawing(event) { /* Existing code */ },
-    stopDrawing() { /* Existing code */ },
-    draw(event) { /* Existing code */ },
+
+    getPosition(event) {
+        const canvas = this.my_canvas.el;
+        this.ctx = canvas.getContext('2d');
+        this.ctx.lineWidth = 1.7;
+        this.ctx.lineCap = 'round';
+        this.ctx.strokeStyle = '#222222';
+        this.ctx.lineJoin = 'round';
+        this.signature_done = false;
+        this.lastX = 0;
+        this.lastY = 0;
+        const rect = canvas.getBoundingClientRect(); // Get canvas position and size
+    
+        // Adjust the coordinates based on the canvas's scale
+        const scaleX = canvas.width / rect.width;   // Horizontal scale
+        const scaleY = canvas.height / rect.height; // Vertical scale
+    
+        let x, y;
+        if (event.type.includes('touch')) {
+            const touch = event.touches[0]; // Handle the first touch point
+            x = (touch.clientX - rect.left) * scaleX; // Scale touch position
+            y = (touch.clientY - rect.top) * scaleY;
+        } else {
+            x = (event.clientX - rect.left) * scaleX; // Scale mouse position
+            y = (event.clientY - rect.top) * scaleY;
+        }
+    
+        return { x, y };
+    },
+
+    startDrawing(event) {
+        this.drawing = true;
+        const { x, y } = this.getPosition(event);
+        [this.lastX, this.lastY] = [x, y];
+    },
+
+    stopDrawing() {
+        this.drawing = false;
+        this.ctx?.beginPath(); // Reset the path to avoid connecting lines between strokes
+    },
+    
+    // to draw on the canvas
+    draw(event) {
+        if (!this.drawing) return;
+    
+        const { x, y } = this.getPosition(event);
+        this.signature_done = true;
+        this.ctx.lineTo(x, y);
+        this.ctx.stroke();
+        this.ctx.beginPath(); // Reset the path
+        this.ctx.moveTo(x, y); // Move to the current position for the next line segment
+    
+        [this.lastX, this.lastY] = [x, y]; // Update the last coordinates
+    },
 
     async sendSignatureData(signature) {
         if (this.session.type === "local") {
