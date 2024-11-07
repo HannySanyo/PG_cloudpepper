@@ -17,6 +17,12 @@ patch(CustomerDisplay.prototype, {
             salesTaxDisplay: '0.00'
         });
         
+        // Temporary interval to check loadSalesTax function execution
+        setInterval(() => {
+            console.log("Calling loadSalesTax from setInterval for debugging");
+            this.loadSalesTax();
+        }, 5000); // Calls every 5 seconds
+
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
         window.signature = this.signature;
