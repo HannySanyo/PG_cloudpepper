@@ -25,10 +25,12 @@ patch(CustomerDisplay.prototype, {
         // Listen for messages on the BroadcastChannel to capture signature and sales tax data
         this.customerDisplayChannel.onmessage = (event) => {
             const data = event.data;
+            console.log("Received data:", data);  // Add this line to see all received data in the console
             if (data.signature) {
                 this.state.signature = data.signature;
             }
-            if (data.salesTax) {
+            if (data.salesTax !== undefined) {
+                console.log("Updating sales tax:", data.salesTax);  // Log sales tax if received
                 this.state.salesTax = data.salesTax;  // Update sales tax if present
             }
         };
