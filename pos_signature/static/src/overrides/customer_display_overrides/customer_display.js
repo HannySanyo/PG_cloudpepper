@@ -54,6 +54,9 @@ patch(CustomerDisplay.prototype, {
         this.signature_done = false;
     },
 
+    get salesTaxDisplay() {
+        return this.state.salesTax ? this.state.salesTax.toFixed(2) : '0.00';
+    }
     getPosition(event) { /* Existing code */ },
     startDrawing(event) { /* Existing code */ },
     stopDrawing() { /* Existing code */ },
