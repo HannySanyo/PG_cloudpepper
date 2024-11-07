@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_signature.WaitingForSignature">
+        <Dialog size="'md'" title="state.title">
+            <main class="modal-body" style="height: 200px; padding:0;">
+                <div t-if="!state.is_signed" class="wrap-wk">
+                    <div class="spinner-wrap-wk">
+                        <div class="spinner-wk">
+                            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                        </div>
+                    </div>
+                </div>
+                <div t-else="" class="signature-box" t-ref="signature-box">
+                </div>
+            </main>   
+
+            <t t-set-slot="footer">
+                <div t-if="state.is_signed" class="button cancel btn btn-lg btn-secondary" t-on-click="retake">
+                    Re-take
+                </div>
+
+                <div t-if="state.is_signed" class="button cancel btn btn-lg btn-secondary" t-on-click="delete_sign">
+                    Delete
+                </div>
+
+                <div class="button cancel btn btn-lg btn-secondary" t-on-click="cancel">
+                    Cancel
+                </div>     
+            </t>
+        </Dialog>
+    </t>
+</templates>
