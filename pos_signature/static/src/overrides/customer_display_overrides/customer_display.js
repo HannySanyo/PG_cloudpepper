@@ -14,7 +14,8 @@ patch(CustomerDisplay.prototype, {
         // Initialize the state with default values
         this.state = useState({
             signature: '',
-            salesTaxDisplay: '0.00'
+            salesTaxDisplay: '0.00',
+            orderReady: false  // New state property to track when order is ready
         });
         
         this.orm = useService("orm");
@@ -34,9 +35,14 @@ patch(CustomerDisplay.prototype, {
 
         this.drawing = false;
 
-        // Effect to check if order ID is available, then load sales tax
+        // Check if the order is available; once available, update state to trigger loadSalesTax
+        if (this.order && this.order.id) {
+            this.state.orderReady = true;
+        }
+
+        // Load sales tax data when orderReady changes
         effect(() => {
-            if (this.order && this.order.id) {  // Check if order and order.id are defined
+            if (this.state.orderReady) {
                 this.loadSalesTax();
             }
         });
