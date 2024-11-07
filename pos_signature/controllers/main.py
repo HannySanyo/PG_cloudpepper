@@ -21,7 +21,7 @@ class PosCustomerDisplayController(http.Controller):
         return True
 
     @http.route('/pos/get_sales_tax', type='json', auth='user', methods=['POST'])
-    def get_sales_tax(self, order_id=None):
+    def get_sales_tax(self, id=None):
         """
         Endpoint to retrieve sales tax information for a POS order.
         :param order_id: ID of the POS order for which to retrieve tax info.
@@ -29,7 +29,7 @@ class PosCustomerDisplayController(http.Controller):
         """
         try:
             # Retrieve the order using the provided order_id
-            order = request.env['pos.order'].browse(order_id)
+            order = request.env['pos.order'].browse(id)
 
             # Check if the order exists and calculate tax
             if not order.exists():
