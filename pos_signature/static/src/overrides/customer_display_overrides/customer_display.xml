@@ -68,7 +68,7 @@
 
         <!-- Add Sales Tax under OrderWidget -->
         <xpath expr="//body" position="inside">
-            <div class="sales-tax-div">
+            <div class="order-summary">
                 <div class="sales-tax">
                     <span>Sales Tax: <t t-esc="salesTax" /></span>
                 </div>
