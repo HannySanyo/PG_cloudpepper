@@ -24,15 +24,15 @@ class PosCustomerDisplayController(http.Controller):
     def get_sales_tax(self, id=None):
         """
         Endpoint to retrieve sales tax information for a POS order.
-        :param order_id: ID of the POS order for which to retrieve tax info.
+        :param id: ID of the POS order for which to retrieve tax info.
         :return: JSON response with 'sales_tax' amount or an error message.
         """
         try:
-            # Retrieve the order using the provided order_id
-            order = request.env['pos.order'].browse(id)
+            # Explicit search by ID to ensure retrieval
+            order = request.env['pos.order'].sudo().search([('id', '=', int(id))], limit=1)  # Convert id to integer for good measure
 
             # Check if the order exists and calculate tax
-            if not order.exists():
+            if not order:
                 return {'error': 'Order not found'}
             
             # Get the sales tax from the order
