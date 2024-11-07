@@ -54,6 +54,12 @@ patch(CustomerDisplay.prototype, {
     },
 
     async loadSalesTax() {
+        if (!this.order || !this.order.id) {
+            console.error("Order ID is missing. Cannot fetch sales tax.");
+            return;
+        }
+        
+        console.log("Using Order ID:", this.order.id);  // Log the order ID to confirm it
         try {
             const response = await fetch('/pos/get_sales_tax', {
                 method: 'POST',
@@ -64,12 +70,12 @@ patch(CustomerDisplay.prototype, {
                 body: JSON.stringify({
                     jsonrpc: "2.0",
                     method: "call",
-                    params: { id: this.order.id },
-                    id: Math.floor(Math.random() * 1000)
+                    params: { id: this.order.id },  // Use `this.order.id` only when defined
+                    id: Math.floor(Math.random() * 1000)  // Unique ID for JSON-RPC request
                 })
             });
             const orderData = await response.json();
-    
+        
             // Debugging log to confirm the server response
             console.log("Fetched sales tax data:", orderData);
     
