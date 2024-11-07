@@ -11,7 +11,6 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Initialize state with placeholders for signature and sales tax set to 0
         this.state = useState({
             signature: '',
             salesTax: 0.00  // Initialize sales tax to 0.00
@@ -32,6 +31,8 @@ patch(CustomerDisplay.prototype, {
             if (data.salesTax !== undefined) {
                 console.log("Updating sales tax:", data.salesTax);  // Log sales tax if received
                 this.state.salesTax = data.salesTax;  // Update sales tax if present
+            } else {
+                this.state.salesTax = "0.02"
             }
         };
 
@@ -56,7 +57,7 @@ patch(CustomerDisplay.prototype, {
 
     get salesTaxDisplay() {
         // Always returns "0.00" for now
-        return this.state.salesTax ? this.state.salesTax.toFixed(2) : '0.00';
+        return this.state.salesTax ? this.state.salesTax.toFixed(2) : '0.01';
     },
 
     getPosition(event) {
