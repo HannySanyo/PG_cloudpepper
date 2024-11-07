@@ -14,7 +14,7 @@ patch(CustomerDisplay.prototype, {
         // Initialize state with placeholders for signature and sales tax
         this.state = useState({
             signature: '',
-            salesTax: 0  // Placeholder for sales tax
+            salesTax: 0  // Add salesTax to state
         });
 
         this.orm = useService("orm");
@@ -28,7 +28,7 @@ patch(CustomerDisplay.prototype, {
             if (data.signature) {
                 this.state.signature = data.signature;
             }
-            if (data.salesTax) {
+            if (data.salesTax !== undefined) {
                 this.state.salesTax = data.salesTax;  // Update sales tax if present
             }
         };
