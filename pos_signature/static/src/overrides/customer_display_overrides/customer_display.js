@@ -1,6 +1,5 @@
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
-import { effect } from "@web/core/utils/reactive";  // Only needed for existing signature effect
 import { useRef } from "@odoo/owl";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
@@ -9,30 +8,22 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Directly define properties
-        this.signature = '';  // Reactive part for signature
-        this.salesTaxDisplay = '0.00';  // Static property, no reactivity needed for now
-        this.orderReady = false;  // Boolean flag to check if order data is ready
+        // Directly define properties without useState or reactivity triggers
+        this.signature = '';           // Static signature property
+        this.salesTaxDisplay = '0.00'; // Static property for sales tax
+        this.orderReady = false;       // Static flag for order readiness
 
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
         window.signature = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Effect for sending signature data when it changes
-        effect(
-            () => {
-                if (!this.signature) return;
-                this.sendSignatureData(this.signature);
-            }
-        );
-
         this.drawing = false;
 
-        // Check if the order is available and load sales tax
+        // Check if the order is available and load sales tax once
         if (this.order && this.order.id) {
             this.orderReady = true;
-            this.loadSalesTax();  // Load sales tax once order is confirmed
+            this.loadSalesTax();
         }
     },
 
@@ -53,10 +44,10 @@ patch(CustomerDisplay.prototype, {
             });
             const orderData = await response.json();
     
-            // Directly assign sales tax to salesTaxDisplay without reactivity
+            // Update sales tax display directly
             if (orderData.result && orderData.result.sales_tax !== undefined) {
                 this.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
-                this.renderSalesTax();  // Manually render sales tax to display
+                this.renderSalesTax(); // Render sales tax directly without reactivity
             } else {
                 console.error("Sales tax not found in response:", orderData);
             }
@@ -79,7 +70,7 @@ patch(CustomerDisplay.prototype, {
         this.signature_done = false;
     },
 
-    // Signature handling as before, no changes here
+    // Signature and other methods remain unchanged, no effects involved
     async sendSignatureData(signature) {
         if (this.session.type === "local") {
             this.customerDisplayChannel.postMessage({ test: 'test', signature: signature });
