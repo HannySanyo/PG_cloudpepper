@@ -16,9 +16,23 @@ class PosCustomerDisplayController(http.Controller):
 
     @http.route("/pos-customer-display/<config_id>/", auth="public", type="json", website=True)
     def process_order(self, access_token, signature, config_id):
-        pos_config_sudo = request.env['pos.config'].sudo().search([('access_token', '=', access_token)], limit=1)
-        pos_config_sudo.update_customer_signature(signature, access_token)
-        return True
+        """
+        Endpoint to process a POS order and update the customer's signature.
+        :param access_token: Access token for POS authentication.
+        :param signature: Base64 encoded signature data.
+        :param config_id: ID of the POS configuration.
+        :return: JSON response indicating success or failure.
+        """
+        try:
+            pos_config_sudo = request.env['pos.config'].sudo().search([('access_token', '=', access_token)], limit=1)
+            if pos_config_sudo:
+                pos_config_sudo.update_customer_signature(signature, access_token)
+                return {'success': True, 'message': 'Signature updated successfully'}
+            else:
+                return {'success': False, 'message': 'POS config not found for given access token'}
+        except Exception as e:
+            _logger.error("Error processing order: %s", e)
+            return {'success': False, 'error': str(e)}
 
     @http.route('/pos/get_sales_tax', type='json', auth='user', methods=['POST'])
     def get_sales_tax(self, id=None):
@@ -50,7 +64,7 @@ class PosCustomerDisplayController(http.Controller):
         except Exception as e:
             _logger.error("Error fetching sales tax: %s", e)
             return {'error': str(e)}
-    
+
     @http.route('/pos/get_order_id', type='json', auth='user', methods=['POST'])
     def get_order_id(self, amount=None):
         """
