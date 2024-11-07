@@ -1,3 +1,7 @@
+/* Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) */
+/* See LICENSE file for full copyright and licensing details. */
+/* License URL : <https://store.webkul.com/license.html/> */
+
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
@@ -10,53 +14,54 @@ import { useService } from "@web/core/utils/hooks";
 patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
-
         this.state = useState({
             signature: '',
-            salesTax: 0.00  // Initialize sales tax to 0.00
-        });
-
+            salesTaxDisplay: '0.00'
+        })
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
-        window.signature = this.signature;
+        window.signature  = this.signature
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-
-        // Listen for messages on the BroadcastChannel to capture signature and sales tax data
-        this.customerDisplayChannel.onmessage = (event) => {
-            const data = event.data;
-            console.log("Received data:", data);  // Add this line to see all received data in the console
-            if (data.signature) {
-                this.state.signature = data.signature;
-            }
-            if (data.salesTax !== undefined) {
-                console.log("Updating sales tax:", data.salesTax);
-                this.state.salesTax = parseFloat(data.salesTax);  // Convert to number if necessary
-            } else {
-                this.state.salesTax = "0.02"
-            }
-        };
-
-        // Reactive effect for signature submission
         effect(
-            batched(({ signature }) => {
-                if (!signature) return;
-                this.sendSignatureData(signature);
-            }),
+            batched(
+                ({
+                    signature
+                }) => {
+                    if (
+                        !signature
+                    ) {
+                        return;
+                    }
+                    this.sendSignatureData(signature);
+                }
+            ),
             [this.state]
         );
-
         this.drawing = false;
+
+        // Load sales tax data
+        this.loadSalesTax();
     },
 
-    onClickClear() {
-        if (this.ctx) {
-            this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
+    async loadSalesTax() {
+        try {
+            // Assuming sales tax information is part of the order
+            // Here, replace with the correct logic or API call to fetch the sales tax based on your setup
+            const orderData = await rpc("/pos/get_sales_tax", { 
+                order_id: this.order.id 
+            });
+            
+            // Assuming `orderData` returns an object with sales tax info
+            this.state.salesTaxDisplay = orderData.sales_tax ? orderData.sales_tax.toFixed(2) : '0.00';
+        } catch (error) {
+            console.error("Error fetching sales tax:", error);
         }
-        this.signature_done = false;
     },
-
-    get salesTaxDisplay() {
-        return parseFloat(this.state.salesTax || 0).toFixed(2);
+    
+    onClickClear(){
+        if(this.ctx)
+            this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
+        this.signature_done = false;
     },
 
     getPosition(event) {
@@ -113,21 +118,27 @@ patch(CustomerDisplay.prototype, {
         [this.lastX, this.lastY] = [x, y]; // Update the last coordinates
     },
 
-    async sendSignatureData(signature) {
+    async sendSignatureData(signature){
         if (this.session.type === "local") {
-            this.customerDisplayChannel.postMessage({ test: 'test', signature: signature });
-        } else if (this.session.type === "remote") {
-            await rpc(
+            this.customerDisplayChannel.postMessage({test:'test',signature: signature})
+        }
+        if (this.session.type === "remote") {
+            const data = await rpc(
                 `/pos-customer-display/${this.session.config_id}`,
                 {
                     access_token: this.session.access_token,
                     signature: this.state.signature || false,
                 }
             );
+            // await this.orm.call("pos.config", "update_customer_signature",[
+            //     [this.session.config_id],
+            //     this.state.signature,
+            //     this.session.access_token
+            // ]);
         }
     },
 
-    onSubmitSignature() {
+    onSubmitSignature(){
         this.state.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
     }
-});
+})
