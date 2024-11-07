@@ -29,8 +29,8 @@ patch(CustomerDisplay.prototype, {
                 this.state.signature = data.signature;
             }
             if (data.salesTax !== undefined) {
-                console.log("Updating sales tax:", data.salesTax);  // Log sales tax if received
-                this.state.salesTax = data.salesTax;  // Update sales tax if present
+                console.log("Updating sales tax:", data.salesTax);
+                this.state.salesTax = parseFloat(data.salesTax);  // Convert to number if necessary
             } else {
                 this.state.salesTax = "0.02"
             }
@@ -56,9 +56,8 @@ patch(CustomerDisplay.prototype, {
     },
 
     get salesTaxDisplay() {
-        // Always returns "0.00" for now
-        return this.state.salesTax ? this.state.salesTax.toFixed(2) : '0.01';
-    },
+        return parseFloat(this.state.salesTax || 0).toFixed(2);
+    }
 
     getPosition(event) {
         const canvas = this.my_canvas.el;
