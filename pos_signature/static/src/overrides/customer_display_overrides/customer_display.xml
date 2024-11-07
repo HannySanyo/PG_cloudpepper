@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_signature.CustomerDisplay" t-inherit="point_of_sale.CustomerDisplay" t-inherit-mode="extension">
+        <xpath expr="//OrderWidget/following-sibling::div[@t-else]" position="replace">
+        </xpath>
+        <xpath expr="//OrderWidget" position="replace">
+            <t t-if="order.waiting_for_signature">
+                <div class="d-flex flex-column flex-grow-1 rounded-3 bg-white overflow-hidden">
+                    <h3 class="bg-secondary px-2 py-1">Please sign</h3>
+                    <canvas class="m-2" id="paint" t-ref="my_canvas"
+                        t-on-mousedown.prevent="startDrawing"
+                        t-on-mousemove.prevent="draw"
+                        t-on-mouseup.prevent="stopDrawing"
+                        t-on-mouseout.prevent="stopDrawing"
+                        t-on-touchstart.prevent="startDrawing"
+                        t-on-touchmove.prevent="draw"
+                        t-on-touchend.prevent="stopDrawing"
+                        style="cursor:crosshair; background-color:white; border: 2px dotted #CCCCCC; border-radius: 15px; width: 85%; position:relative; left: 50%; transform: translate(-50%)"/>
+                    <h3 class="bg-secondary m-2 py-1" style="background-color:white; width: 85%; position:relative; left: 50%; transform: translate(-50%)">
+                        Your total is <t t-esc="order.amount" />. Please sign to accept this total and agree to our
+                        <a t-if="order" t-att-href="order.terms_conditions_link" target="_blank">Terms and Conditions</a>.
+                    </h3>
+                    <div style="display: flex;
+                        justify-content: center;
+                        margin-top: 20px;
+                        gap: 20px;">
+                        <button t-on-click='onSubmitSignature' class="submit-signature" style="width: 100px;
+                            background-color: #343A40;
+                            color: white;
+                            padding: 7px 15px;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 16px;"
+                            >Submit</button>
+                        <button class="clear-button" t-on-click="onClickClear" style="background-color: none;
+                            width: 100px;
+                            color: #343A40;
+                            padding: 7px 15px;
+                            border: 1px solid black;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 16px;">Clear</button>
+                    </div>
+                </div>
+            </t>
+            <t t-else="">
+                <OrderWidget t-if="!order.finalized and !order.waiting_for_signature" lines="order.lines" t-slot-scope="scope" class="'gap-0 p-0 mx-2 pb-3 bg-view'" style="'scroll-snap-type: y mandatory;'" generalNote="order.generalNote or ''">
+
+                    <Orderline line="scope.line" class="{
+                            'o_customer_display_orderline bg-white fs-3 rounded-0': true,
+                        }"
+                    />
+                    <t t-set-slot="emptyCart">
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 w-100">
+                            <h1 class="display-2 w-75 mt-2 fw-bold text-center text-muted">Welcome.</h1>
+                        </div>
+                    </t>
+                </OrderWidget>
+                <div t-else="" class="d-flex flex-column align-items-center justify-content-center h-100 w-100">
+                    <h1 class="display-2 w-75 mt-2 fw-bold text-center text-muted">Thank you.</h1>
+                </div>
+            </t>
+        </xpath>
+    </t>
+
+</templates>
