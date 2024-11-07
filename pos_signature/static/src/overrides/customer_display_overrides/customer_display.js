@@ -58,15 +58,19 @@ patch(CustomerDisplay.prototype, {
                 body: JSON.stringify({
                     jsonrpc: "2.0",
                     method: "call",
-                    params: { id: this.order.id },  // Use `this.order.id` only when defined
-                    id: Math.floor(Math.random() * 1000)  // Unique ID for JSON-RPC request
+                    params: { id: this.order.id },
+                    id: Math.floor(Math.random() * 1000)
                 })
             });
             const orderData = await response.json();
     
+            // Debugging log to confirm the server response
+            console.log("Fetched sales tax data:", orderData);
+    
             // Update state with sales tax if it exists in the response
             if (orderData.result && orderData.result.sales_tax !== undefined) {
                 this.state.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
+                console.log("Updated salesTaxDisplay:", this.state.salesTaxDisplay); // Confirm the assignment
                 this.render();  // Trigger re-render to reflect updated tax on display
             } else {
                 console.error("Sales tax not found in response:", orderData);
