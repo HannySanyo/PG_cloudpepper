@@ -17,12 +17,6 @@ patch(CustomerDisplay.prototype, {
             salesTaxDisplay: '0.00'
         });
         
-        // Temporary interval to check loadSalesTax function execution
-        setInterval(() => {
-            console.log("Calling loadSalesTax from setInterval for debugging");
-            this.loadSalesTax();
-        }, 5000); // Calls every 5 seconds
-
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
         window.signature = this.signature;
@@ -40,16 +34,21 @@ patch(CustomerDisplay.prototype, {
 
         this.drawing = false;
 
-        // Load sales tax data if `this.order.id` is available
+        // Retry mechanism to wait for order ID
+        this.checkOrderIdAndLoadTax();
+    },
+
+    checkOrderIdAndLoadTax() {
+        // Check if `this.order.id` is available
         if (this.order && this.order.id) {
+            console.log("Order ID found:", this.order.id);
             this.loadSalesTax();
         } else {
-            // Retry loading sales tax if `this.order.id` is not immediately available
+            console.log("Order ID not available yet. Retrying in 1 second...");
+            // Retry after 1 second if order ID is still not available
             setTimeout(() => {
-                if (this.order && this.order.id) {
-                    this.loadSalesTax();
-                }
-            }, 500); // Adjust delay as necessary
+                this.checkOrderIdAndLoadTax();
+            }, 1000); // Adjust the delay as needed
         }
     },
 
@@ -75,10 +74,10 @@ patch(CustomerDisplay.prototype, {
                 })
             });
             const orderData = await response.json();
-        
+    
             // Debugging log to confirm the server response
             console.log("Fetched sales tax data:", orderData);
-    
+
             // Update state with sales tax if it exists in the response
             if (orderData.result && orderData.result.sales_tax !== undefined) {
                 this.state.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
