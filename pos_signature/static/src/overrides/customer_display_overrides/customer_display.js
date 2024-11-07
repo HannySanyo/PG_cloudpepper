@@ -1,7 +1,3 @@
-/* Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) */
-/* See LICENSE file for full copyright and licensing details. */
-/* License URL : <https://store.webkul.com/license.html/> */
-
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
@@ -14,53 +10,71 @@ import { useService } from "@web/core/utils/hooks";
 patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
+        
+        // Initialize the state with default values
         this.state = useState({
             signature: '',
             salesTaxDisplay: '0.00'
-        })
+        });
+        
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
-        window.signature  = this.signature
+        window.signature = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        
         effect(
             batched(
-                ({
-                    signature
-                }) => {
-                    if (
-                        !signature
-                    ) {
-                        return;
-                    }
+                ({ signature }) => {
+                    if (!signature) return;
                     this.sendSignatureData(signature);
                 }
             ),
             [this.state]
         );
+
         this.drawing = false;
 
-        // Load sales tax data
-        this.loadSalesTax();
+        // Effect to check if order ID is available, then load sales tax
+        effect(() => {
+            if (this.order && this.order.id) {  // Check if order and order.id are defined
+                this.loadSalesTax();
+            }
+        });
     },
 
     async loadSalesTax() {
         try {
-            // Assuming sales tax information is part of the order
-            // Here, replace with the correct logic or API call to fetch the sales tax based on your setup
-            const orderData = await rpc("/pos/get_sales_tax", { 
-                order_id: this.order.id 
+            const response = await fetch('/pos/get_sales_tax', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "call",
+                    params: { id: this.order.id },  // Use `this.order.id` only when defined
+                    id: Math.floor(Math.random() * 1000)  // Unique ID for JSON-RPC request
+                })
             });
-            
-            // Assuming `orderData` returns an object with sales tax info
-            this.state.salesTaxDisplay = orderData.sales_tax ? orderData.sales_tax.toFixed(2) : '0.00';
+            const orderData = await response.json();
+    
+            // Update state with sales tax if it exists in the response
+            if (orderData.result && orderData.result.sales_tax !== undefined) {
+                this.state.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
+                this.render();  // Trigger re-render to reflect updated tax on display
+            } else {
+                console.error("Sales tax not found in response:", orderData);
+            }
         } catch (error) {
             console.error("Error fetching sales tax:", error);
         }
     },
-    
+
     onClickClear(){
-        if(this.ctx)
+        if (this.ctx) {
             this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
+        }
         this.signature_done = false;
     },
 
@@ -77,16 +91,16 @@ patch(CustomerDisplay.prototype, {
         const rect = canvas.getBoundingClientRect(); // Get canvas position and size
     
         // Adjust the coordinates based on the canvas's scale
-        const scaleX = canvas.width / rect.width;   // Horizontal scale
-        const scaleY = canvas.height / rect.height; // Vertical scale
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
     
         let x, y;
         if (event.type.includes('touch')) {
-            const touch = event.touches[0]; // Handle the first touch point
-            x = (touch.clientX - rect.left) * scaleX; // Scale touch position
+            const touch = event.touches[0];
+            x = (touch.clientX - rect.left) * scaleX;
             y = (touch.clientY - rect.top) * scaleY;
         } else {
-            x = (event.clientX - rect.left) * scaleX; // Scale mouse position
+            x = (event.clientX - rect.left) * scaleX;
             y = (event.clientY - rect.top) * scaleY;
         }
     
@@ -104,7 +118,6 @@ patch(CustomerDisplay.prototype, {
         this.ctx?.beginPath(); // Reset the path to avoid connecting lines between strokes
     },
     
-    // to draw on the canvas
     draw(event) {
         if (!this.drawing) return;
     
@@ -118,9 +131,9 @@ patch(CustomerDisplay.prototype, {
         [this.lastX, this.lastY] = [x, y]; // Update the last coordinates
     },
 
-    async sendSignatureData(signature){
+    async sendSignatureData(signature) {
         if (this.session.type === "local") {
-            this.customerDisplayChannel.postMessage({test:'test',signature: signature})
+            this.customerDisplayChannel.postMessage({test:'test', signature: signature});
         }
         if (this.session.type === "remote") {
             const data = await rpc(
@@ -130,15 +143,10 @@ patch(CustomerDisplay.prototype, {
                     signature: this.state.signature || false,
                 }
             );
-            // await this.orm.call("pos.config", "update_customer_signature",[
-            //     [this.session.config_id],
-            //     this.state.signature,
-            //     this.session.access_token
-            // ]);
         }
     },
 
-    onSubmitSignature(){
+    onSubmitSignature() {
         this.state.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
     }
-})
+});
