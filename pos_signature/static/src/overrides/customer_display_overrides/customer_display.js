@@ -11,10 +11,10 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Separate reactive states for each property
-        this.signatureState = useState({ signature: '' });
-        this.salesTaxState = useState({ salesTaxDisplay: '0.00' });
-        this.orderReadyState = useState({ orderReady: false });
+        // Define each reactive property as its own state
+        this.signature = useState('');       // Signature data
+        this.salesTaxDisplay = useState('0.00');   // Sales tax display string
+        this.orderReady = useState(false);   // Order readiness
 
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
@@ -24,22 +24,22 @@ patch(CustomerDisplay.prototype, {
         // Effect for sending signature data when it changes
         effect(
             batched(() => {
-                if (!this.signatureState.signature) return;
-                this.sendSignatureData(this.signatureState.signature);
+                if (!this.signature) return;
+                this.sendSignatureData(this.signature);
             }),
-            [this.signatureState.signature]  // Only react to changes in `signature`
+            [this.signature]  // Only react to changes in `signature`
         );
 
         this.drawing = false;
 
-        // Check if the order is available; once available, update state to trigger loadSalesTax
+        // Check if the order is available; once available, set orderReady to true
         if (this.order && this.order.id) {
-            this.orderReadyState.orderReady = true;
+            this.orderReady = true;
         }
 
         // Load sales tax data when orderReady changes
         effect(() => {
-            if (this.orderReadyState.orderReady) {
+            if (this.orderReady) {
                 this.loadSalesTax();
             }
         });
@@ -62,10 +62,9 @@ patch(CustomerDisplay.prototype, {
             });
             const orderData = await response.json();
     
-            // Update sales tax state if it exists in the response
+            // Update sales tax if it exists in the response
             if (orderData.result && orderData.result.sales_tax !== undefined) {
-                this.salesTaxState.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
-                this.render();  // Trigger re-render to reflect updated tax on display
+                this.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
             } else {
                 console.error("Sales tax not found in response:", orderData);
             }
@@ -142,13 +141,13 @@ patch(CustomerDisplay.prototype, {
                 `/pos-customer-display/${this.session.config_id}`,
                 {
                     access_token: this.session.access_token,
-                    signature: this.signatureState.signature || false,
+                    signature: this.signature || false,
                 }
             );
         }
     },
 
     onSubmitSignature() {
-        this.signatureState.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
+        this.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
     }
 });
