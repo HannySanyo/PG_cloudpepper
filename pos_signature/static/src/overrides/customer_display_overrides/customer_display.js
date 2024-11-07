@@ -11,10 +11,10 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Initialize state with placeholders for signature and sales tax
+        // Initialize state with placeholders for signature and sales tax set to 0
         this.state = useState({
             signature: '',
-            salesTax: 0  // Placeholder for sales tax
+            salesTax: 0.00  // Initialize sales tax to 0.00
         });
 
         this.orm = useService("orm");
@@ -55,6 +55,7 @@ patch(CustomerDisplay.prototype, {
     },
 
     get salesTaxDisplay() {
+        // Always returns "0.00" for now
         return this.state.salesTax ? this.state.salesTax.toFixed(2) : '0.00';
     },
 
