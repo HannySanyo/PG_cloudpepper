@@ -28,8 +28,15 @@ class PosCustomerDisplayController(http.Controller):
         :return: JSON response with 'sales_tax' amount or an error message.
         """
         try:
+            # Log the entire request parameters to see what is actually received
+            _logger.info("Request params: %s", request.params)
+
+            # Check if id is provided
+            if id is None:
+                return {'error': 'Order ID not provided'}
+
             # Explicit search by ID to ensure retrieval
-            order = request.env['pos.order'].sudo().search([('id', '=', int(id))], limit=1)  # Convert id to integer for good measure
+            order = request.env['pos.order'].sudo().search([('id', '=', int(id))], limit=1)
 
             # Check if the order exists and calculate tax
             if not order:
