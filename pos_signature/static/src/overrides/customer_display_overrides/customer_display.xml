@@ -67,12 +67,5 @@
             </t>
         </xpath>
 
-        <xpath expr="//OrderWidget" position="after">
-            
-            <div class="order-total">
-                <span>Order Total: <t t-esc="orderTotal" /></span>
-            </div>
-               
-        </xpath>
     </template>
 </odoo>
