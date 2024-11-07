@@ -1,6 +1,6 @@
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
-import { useState } from "@odoo/owl";
+import { observe } from "@odoo/owl";  // Use observe instead of useState
 import { batched } from "@web/core/utils/timing";
 import { effect } from "@web/core/utils/reactive";
 import { useRef } from "@odoo/owl";
@@ -11,35 +11,35 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        // Define each reactive property as its own state
-        this.signature = useState('');       // Signature data
-        this.salesTaxDisplay = useState('0.00');   // Sales tax display string
-        this.orderReady = useState(false);   // Order readiness
+        // Define individual reactive properties with observe
+        this.signature = observe({ value: '' });
+        this.salesTaxDisplay = observe({ value: '0.00' });
+        this.orderReady = observe({ value: false });
 
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
-        window.signature = this.signature;
+        window.signature = this.signature.value;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
         // Effect for sending signature data when it changes
         effect(
             batched(() => {
-                if (!this.signature) return;
-                this.sendSignatureData(this.signature);
+                if (!this.signature.value) return;
+                this.sendSignatureData(this.signature.value);
             }),
-            [this.signature]  // Only react to changes in `signature`
+            [this.signature.value]  // Only react to changes in `signature.value`
         );
 
         this.drawing = false;
 
         // Check if the order is available; once available, set orderReady to true
         if (this.order && this.order.id) {
-            this.orderReady = true;
+            this.orderReady.value = true;
         }
 
         // Load sales tax data when orderReady changes
         effect(() => {
-            if (this.orderReady) {
+            if (this.orderReady.value) {
                 this.loadSalesTax();
             }
         });
@@ -64,7 +64,7 @@ patch(CustomerDisplay.prototype, {
     
             // Update sales tax if it exists in the response
             if (orderData.result && orderData.result.sales_tax !== undefined) {
-                this.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
+                this.salesTaxDisplay.value = orderData.result.sales_tax.toFixed(2);
             } else {
                 console.error("Sales tax not found in response:", orderData);
             }
@@ -141,13 +141,13 @@ patch(CustomerDisplay.prototype, {
                 `/pos-customer-display/${this.session.config_id}`,
                 {
                     access_token: this.session.access_token,
-                    signature: this.signature || false,
+                    signature: this.signature.value || false,
                 }
             );
         }
     },
 
     onSubmitSignature() {
-        this.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
+        this.signature.value = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
     }
 });
