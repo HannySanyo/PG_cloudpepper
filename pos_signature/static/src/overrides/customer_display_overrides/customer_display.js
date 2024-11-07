@@ -10,39 +10,36 @@ import { useService } from "@web/core/utils/hooks";
 patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
-        
-        // Initialize the state with default values
-        this.state = useState({
-            signature: '',
-            salesTaxDisplay: '0.00',
-            orderReady: false  // New state property to track when order is ready
-        });
-        
+
+        // Separate reactive states for each property
+        this.signatureState = useState({ signature: '' });
+        this.salesTaxState = useState({ salesTaxDisplay: '0.00' });
+        this.orderReadyState = useState({ orderReady: false });
+
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
         window.signature = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-        
+
+        // Effect for sending signature data when it changes
         effect(
-            batched(
-                ({ signature }) => {
-                    if (!signature) return;
-                    this.sendSignatureData(signature);
-                }
-            ),
-            [this.state]
+            batched(() => {
+                if (!this.signatureState.signature) return;
+                this.sendSignatureData(this.signatureState.signature);
+            }),
+            [this.signatureState.signature]  // Only react to changes in `signature`
         );
 
         this.drawing = false;
 
         // Check if the order is available; once available, update state to trigger loadSalesTax
         if (this.order && this.order.id) {
-            this.state.orderReady = true;
+            this.orderReadyState.orderReady = true;
         }
 
         // Load sales tax data when orderReady changes
         effect(() => {
-            if (this.state.orderReady) {
+            if (this.orderReadyState.orderReady) {
                 this.loadSalesTax();
             }
         });
@@ -59,15 +56,15 @@ patch(CustomerDisplay.prototype, {
                 body: JSON.stringify({
                     jsonrpc: "2.0",
                     method: "call",
-                    params: { id: this.order.id },  // Use `this.order.id` only when defined
-                    id: Math.floor(Math.random() * 1000)  // Unique ID for JSON-RPC request
+                    params: { id: this.order.id },
+                    id: Math.floor(Math.random() * 1000)
                 })
             });
             const orderData = await response.json();
     
-            // Update state with sales tax if it exists in the response
+            // Update sales tax state if it exists in the response
             if (orderData.result && orderData.result.sales_tax !== undefined) {
-                this.state.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
+                this.salesTaxState.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
                 this.render();  // Trigger re-render to reflect updated tax on display
             } else {
                 console.error("Sales tax not found in response:", orderData);
@@ -94,9 +91,8 @@ patch(CustomerDisplay.prototype, {
         this.signature_done = false;
         this.lastX = 0;
         this.lastY = 0;
-        const rect = canvas.getBoundingClientRect(); // Get canvas position and size
+        const rect = canvas.getBoundingClientRect();
     
-        // Adjust the coordinates based on the canvas's scale
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
     
@@ -121,7 +117,7 @@ patch(CustomerDisplay.prototype, {
 
     stopDrawing() {
         this.drawing = false;
-        this.ctx?.beginPath(); // Reset the path to avoid connecting lines between strokes
+        this.ctx?.beginPath(); 
     },
     
     draw(event) {
@@ -131,28 +127,28 @@ patch(CustomerDisplay.prototype, {
         this.signature_done = true;
         this.ctx.lineTo(x, y);
         this.ctx.stroke();
-        this.ctx.beginPath(); // Reset the path
-        this.ctx.moveTo(x, y); // Move to the current position for the next line segment
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
     
-        [this.lastX, this.lastY] = [x, y]; // Update the last coordinates
+        [this.lastX, this.lastY] = [x, y];
     },
 
     async sendSignatureData(signature) {
         if (this.session.type === "local") {
-            this.customerDisplayChannel.postMessage({test:'test', signature: signature});
+            this.customerDisplayChannel.postMessage({ test: 'test', signature: signature });
         }
         if (this.session.type === "remote") {
-            const data = await rpc(
+            await rpc(
                 `/pos-customer-display/${this.session.config_id}`,
                 {
                     access_token: this.session.access_token,
-                    signature: this.state.signature || false,
+                    signature: this.signatureState.signature || false,
                 }
             );
         }
     },
 
     onSubmitSignature() {
-        this.state.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
+        this.signatureState.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
     }
 });
