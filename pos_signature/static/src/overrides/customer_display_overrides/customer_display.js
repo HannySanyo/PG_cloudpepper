@@ -86,6 +86,10 @@ patch(CustomerDisplay.prototype, {
         }
     },
 
+    get salesTaxDisplayValue() {
+        return this.salesTaxDisplay || '0.00';  // Default to '0.00' if undefined
+    },
+
     onSubmitSignature() {
         this.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
     }

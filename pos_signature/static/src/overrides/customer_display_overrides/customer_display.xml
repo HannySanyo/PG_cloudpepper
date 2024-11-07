@@ -17,7 +17,7 @@
                         t-on-touchend.prevent="stopDrawing"
                         style="cursor:crosshair; background-color:white; border: 2px dotted #CCCCCC; border-radius: 15px; width: 85%; position:relative; left: 50%; transform: translate(-50%)"/>
                     <h3 class="bg-secondary m-2 py-1" style="background-color:white; width: 85%; position:relative; left: 50%; transform: translate(-50%)">
-                        Your total is <t t-esc="order.amount" />. Sales Tax: <t t-esc="salesTaxDisplay" />.
+                        Your total is <t t-esc="order.amount" />. Sales Tax: <t t-esc="salesTaxDisplayValue" />.
                         Please sign to accept this total and agree to our
                         <a t-if="order" t-att-href="order.terms_conditions_link" target="_blank">Terms and Conditions</a>.
                     </h3>
@@ -62,8 +62,8 @@
 
         <xpath expr="//div[@class='row fs-2 fw-bolder']" position="before">
             <div class="row fs-2">
-                <div class="col text-end">Tax:</div>
-                <div class="col text-end" t-esc="state.salesTaxDisplay"/>
+                <div class="col text-end">Tax </div>
+                <div class="col text-end"><t t-esc="salesTaxDisplayValue"/></div>
             </div>
         </xpath>
 
