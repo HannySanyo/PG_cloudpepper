@@ -14,7 +14,8 @@ patch(CustomerDisplay.prototype, {
         // Initialize the state with default values
         this.state = useState({
             signature: '',
-            salesTaxDisplay: '0.00'
+            salesTaxDisplay: '0.00',
+            orderId: null  // New state property to store the fetched order ID
         });
         
         this.orm = useService("orm");
@@ -34,31 +35,47 @@ patch(CustomerDisplay.prototype, {
 
         this.drawing = false;
 
-        // Retry mechanism to wait for order ID
-        this.checkOrderIdAndLoadTax();
+        // Fetch the order ID first, then load sales tax data once it’s available
+        this.fetchOrderId();
     },
 
-    checkOrderIdAndLoadTax() {
-        // Check if `this.order.id` is available
-        if (this.order && this.order.id) {
-            console.log("Order ID found:", this.order.id);
-            this.loadSalesTax();
-        } else {
-            console.log("Order ID not available yet. Retrying in 1 second...");
-            // Retry after 1 second if order ID is still not available
-            setTimeout(() => {
-                this.checkOrderIdAndLoadTax();
-            }, 1000); // Adjust the delay as needed
+    // New function to fetch the order ID based on order details
+    async fetchOrderId() {
+        try {
+            const response = await fetch('/pos/get_order_id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "call",
+                    params: { amount: this.order.amount },  // Use any other unique identifiers here
+                    id: Math.floor(Math.random() * 1000)
+                })
+            });
+            const orderData = await response.json();
+
+            if (orderData.result && orderData.result.id) {
+                console.log("Fetched Order ID:", orderData.result.id);
+                this.state.orderId = orderData.result.id;  // Store the order ID in state
+                this.loadSalesTax();  // Call loadSalesTax once the ID is available
+            } else {
+                console.error("Order ID not found in response:", orderData);
+            }
+        } catch (error) {
+            console.error("Error fetching order ID:", error);
         }
     },
 
     async loadSalesTax() {
-        if (!this.order || !this.order.id) {
+        if (!this.state.orderId) {  // Use state.orderId instead of this.order.id
             console.error("Order ID is missing. Cannot fetch sales tax.");
             return;
         }
         
-        console.log("Using Order ID:", this.order.id);  // Log the order ID to confirm it
+        console.log("Using Order ID:", this.state.orderId);  // Log the order ID to confirm it
         try {
             const response = await fetch('/pos/get_sales_tax', {
                 method: 'POST',
@@ -69,7 +86,7 @@ patch(CustomerDisplay.prototype, {
                 body: JSON.stringify({
                     jsonrpc: "2.0",
                     method: "call",
-                    params: { id: this.order.id },  // Use `this.order.id` only when defined
+                    params: { id: this.state.orderId },  // Use the fetched order ID
                     id: Math.floor(Math.random() * 1000)  // Unique ID for JSON-RPC request
                 })
             });

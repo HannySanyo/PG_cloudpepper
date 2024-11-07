@@ -50,3 +50,19 @@ class PosCustomerDisplayController(http.Controller):
         except Exception as e:
             _logger.error("Error fetching sales tax: %s", e)
             return {'error': str(e)}
+    
+    @http.route('/pos/get_order_id', type='json', auth='user', methods=['POST'])
+    def get_order_id(self, amount=None):
+        """
+        Endpoint to retrieve order ID based on amount.
+        :param amount: Total amount of the POS order for which to retrieve the ID.
+        :return: JSON response with the 'id' of the matching order or an error message.
+        """
+        try:
+            order = request.env['pos.order'].sudo().search([('amount_total', '=', amount)], limit=1)
+            if not order:
+                return {'error': 'Order not found'}
+            return {'id': order.id}
+        except Exception as e:
+            _logger.error("Error fetching order ID: %s", e)
+            return {'error': str(e)}
