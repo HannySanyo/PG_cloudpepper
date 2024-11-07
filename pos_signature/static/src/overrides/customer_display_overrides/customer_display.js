@@ -29,6 +29,8 @@ patch(CustomerDisplay.prototype, {
 
     async loadSalesTax() {
         try {
+            console.log("Fetching sales tax for order ID:", this.order.id); // Log order ID
+    
             const response = await fetch('/pos/get_sales_tax', {
                 method: 'POST',
                 headers: {
@@ -43,11 +45,14 @@ patch(CustomerDisplay.prototype, {
                 })
             });
             const orderData = await response.json();
+            
+            console.log("Received orderData:", orderData); // Log the full response
     
-            // Update sales tax display directly
+            // Check if sales tax is present in the response
             if (orderData.result && orderData.result.sales_tax !== undefined) {
                 this.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
-                this.renderSalesTax(); // Render sales tax directly without reactivity
+                console.log("Updated salesTaxDisplay:", this.salesTaxDisplay); // Log the updated sales tax
+                this.renderSalesTax(); // Manually render sales tax directly
             } else {
                 console.error("Sales tax not found in response:", orderData);
             }
