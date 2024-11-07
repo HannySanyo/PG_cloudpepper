@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<odoo>
+    <data>
+        <record id="view_pos_config_form_inherit" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.point_of_sale</field>
+            <field name="model">res.config.settings</field>
+            <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form" />
+            <field name="arch" type="xml">
+                <xpath expr="//block[@id='pos_interface_section']" position="after">
+                    <block title='POS Signature' id='pos_signature_section'>
+                        <setting id="enable_pos_signature"
+                            help="Enable this to add signature">
+                            <field name="is_pos_signature" />
+
+                            <div invisible="not is_pos_signature">
+                                <field name="is_signature_in_invoice" class="oe_inline"/>
+                                <label class="fw-normal" for="is_signature_in_invoice" string="Signature in Invoice"/>
+                            </div>
+                           
+                            
+                            <div invisible="not is_pos_signature">
+                                <field name="is_signature_mandatory" class="oe_inline"/>
+                                <label class="fw-normal" for="is_signature_mandatory" string="Set Signature Mandatory"/>
+                            </div>
+                            <div class="content-group mt16 row"  invisible="not (is_pos_signature and pos_customer_display_type != 'none')">
+                                <label class="fw-bold" for="pos_add_signature_from" string="Add signature from"/>
+                                <div class="text-muted mb-2">
+                                    Where would you like to open the signature screen?
+                                </div>
+                                <div class="o_light_label">
+                                    <field name="pos_add_signature_from" class="oe_inline o_light_label" widget="radio"/>
+                                </div>
+                            </div>
+                             <div invisible="not is_pos_signature">
+                                <field name="pos_show_total_with_terms" class="oe_inline"/>
+                                <label class="fw-normal" for="pos_show_total_with_terms" string="Show Total with Terms"/>
+                            </div>
+                            <div class="content-group mt16 row"  invisible="not is_pos_signature or not pos_show_total_with_terms">
+                                <label class="fw-bold" for="pos_terms_conditions_link" string="Terms and Conditions Link"/>
+                                <div class="text-muted mb-2">
+                                    URL link for the Terms and Conditions. This link will appear on the signature screen.
+                                </div>
+                                <div class="o_light_label">
+                                    <field name="pos_terms_conditions_link"     required="1" />
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

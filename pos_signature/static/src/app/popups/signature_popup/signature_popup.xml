@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_signature.SignaturePopupWidget">
+        <Dialog size="'md'" title="'Draw Signature'">
+                <canvas id='paint' t-ref="wkcanvas" width="565px" height="255px" style='width: 565px;height: 255px;cursor: crosshair;background-color:white;'></canvas>
+
+            <t t-set-slot="footer">
+                <!-- <div class="modal-footer-left d-flex gap-2"> -->
+                    <button class="button confirm btn btn-lg btn-primary" t-on-click="click_confirm">Save Signature</button>
+                    <button class="button cancel btn btn-lg btn-secondary" t-on-click="cancel">Cancel</button>
+                    <button class="button cancel btn btn-lg btn-secondary" t-on-click="clear_signature">Clear</button>
+                <!-- </div> -->
+            </t>
+        </Dialog>
+    </t>
+</templates>
