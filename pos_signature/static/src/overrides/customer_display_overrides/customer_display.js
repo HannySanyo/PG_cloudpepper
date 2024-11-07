@@ -56,7 +56,7 @@ patch(CustomerDisplay.prototype, {
 
     get salesTaxDisplay() {
         return this.state.salesTax ? this.state.salesTax.toFixed(2) : '0.00';
-    }
+    },
 
     getPosition(event) {
         const canvas = this.my_canvas.el;
