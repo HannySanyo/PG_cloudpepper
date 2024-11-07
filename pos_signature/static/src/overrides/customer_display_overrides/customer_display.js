@@ -57,7 +57,7 @@ patch(CustomerDisplay.prototype, {
 
     get salesTaxDisplay() {
         return parseFloat(this.state.salesTax || 0).toFixed(2);
-    }
+    },
 
     getPosition(event) {
         const canvas = this.my_canvas.el;
