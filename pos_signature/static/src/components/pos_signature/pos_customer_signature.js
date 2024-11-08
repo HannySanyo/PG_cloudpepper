@@ -40,6 +40,7 @@ patch(PosOrder.prototype, {
     _broadcastOrderUpdates(order) {
         const total = order.get_total_with_tax();
         const tax = order.get_total_tax();
+        const amount = order.get_total_with_tax();  // Example additional field
 
         // Ensure values are valid before broadcasting
         if (typeof total === 'number' && typeof tax === 'number') {
@@ -47,8 +48,11 @@ patch(PosOrder.prototype, {
             displayChannel.postMessage({
                 total: total,
                 tax: tax,
+                amount: amount,
+                finalized: order.is_finalized,  // Example status
+                lines: order.get_orderlines().map(line => line.export_as_JSON()) // Exported order lines if needed
             });
-            console.log("Broadcasting order update. Total:", total, "Tax:", tax);
+            console.log("Broadcasting order update. Total:", total, "Tax:", tax, "Amount:", amount);
         } else {
             console.warn("Total or tax is not a valid number:", total, tax);
         }
