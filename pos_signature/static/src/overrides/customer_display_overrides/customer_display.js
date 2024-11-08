@@ -7,26 +7,21 @@ import { useService } from "@web/core/utils/hooks";
 patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
-
-        console.log("Setting up CustomerDisplay instance with BroadcastChannel...");
+    
         this.salesTaxDisplay = '0.00';
-        
-        // Initialize polling for localStorage tax data
-        this.pollLocalStorageForTax();
-    },
-
-    pollLocalStorageForTax() {
-        setInterval(() => {
-            const taxData = JSON.parse(localStorage.getItem('customerDisplayTaxData') || '{}');
+    
+        // Initialize the BroadcastChannel for real-time updates
+        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        this.customerDisplayChannel.onmessage = (event) => {
+            const taxData = event.data;
             if (taxData && taxData.sales_tax !== undefined) {
                 this.updateDisplayValues(taxData.sales_tax);
             }
-        }, 1000);  // Poll every 1 second
+        };
     },
-
+    
     updateDisplayValues(tax) {
         const taxElement = document.querySelector("#salesTaxDisplay");
-
         if (taxElement) {
             taxElement.textContent = tax.toFixed(2);
             console.log("Updated Sales Tax on Customer Display:", tax);

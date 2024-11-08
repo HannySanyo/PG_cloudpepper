@@ -23,13 +23,17 @@ patch(PosOrder.prototype, {
         setInterval(() => {
             this.updateLocalStorageWithTax();
         }, 2000); // Check every 2 seconds
+
+         // Initialize BroadcastChannel
+        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
     },
+
+   
 
     // Function to update tax data in localStorage if there is a change
     updateLocalStorageWithTax() {
         const currentTax = this.get_total_tax ? this.get_total_tax() : 0;
 
-        // Only update if the tax has changed
         if (currentTax !== this.previousTaxValue) {
             const taxData = {
                 sales_tax: currentTax,
@@ -38,7 +42,9 @@ patch(PosOrder.prototype, {
             localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
             console.log("Updated localStorage with tax data:", taxData);
 
-            // Update previous tax value to the current value
+            // Notify customer display of tax update
+            this.customerDisplayChannel.postMessage(taxData);
+
             this.previousTaxValue = currentTax;
         }
     },
