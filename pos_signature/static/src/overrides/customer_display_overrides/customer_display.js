@@ -34,7 +34,7 @@ patch(CustomerDisplay.prototype, {
         if (this.currentOrderId !== newOrderId) {
             this.currentOrderId = newOrderId;
             console.log("New Order ID received:", newOrderId);
-            this.loadSalesTax(newOrderId);  // Fetch and load tax for the new order
+            await this.loadSalesTax(newOrderId);  // Fetch and load tax for the new order
         }
     },
 
@@ -44,7 +44,7 @@ patch(CustomerDisplay.prototype, {
         if (orderId) {
             console.log("Order ID retrieved:", orderId);
             this.currentOrderId = orderId;
-            this.loadSalesTax(orderId);  // Pass the order ID directly
+            await this.loadSalesTax(orderId);  // Pass the order ID directly
         } else {
             console.warn("Order ID could not be retrieved.");
         }
