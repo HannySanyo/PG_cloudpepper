@@ -16,19 +16,14 @@ patch(PosOrder.prototype, {
         // Initialize previous tax value to detect changes
         this.previousTaxValue = null;
 
+        // Initialize BroadcastChannel
+        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+
         // Update tax in localStorage initially
         this.updateLocalStorageWithTax();
 
-        // Set an interval to periodically check for tax updates
-        setInterval(() => {
-            this.updateLocalStorageWithTax();
-        }, 2000); // Check every 2 seconds
-
-         // Initialize BroadcastChannel
-        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        // Only update tax in localStorage on order modifications
     },
-
-   
 
     // Function to update tax data in localStorage if there is a change
     updateLocalStorageWithTax() {
@@ -42,8 +37,12 @@ patch(PosOrder.prototype, {
             localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
             console.log("Updated localStorage with tax data:", taxData);
 
-            // Notify customer display of tax update
-            this.customerDisplayChannel.postMessage(taxData);
+            // Ensure customerDisplayChannel is initialized before sending message
+            if (this.customerDisplayChannel) {
+                this.customerDisplayChannel.postMessage(taxData);
+            } else {
+                console.warn("BroadcastChannel not available.");
+            }
 
             this.previousTaxValue = currentTax;
         }
