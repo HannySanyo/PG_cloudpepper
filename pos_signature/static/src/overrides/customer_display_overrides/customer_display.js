@@ -8,27 +8,42 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
 
-        this.signature = '';           // Static signature property
-        this.salesTaxDisplay = '0.00'; // Static property for sales tax
-        this.orderReady = false;       // Static flag for order readiness
-
+        this.signature = '';
+        this.salesTaxDisplay = '0.00';
+        this.currentOrderId = null;  // Track the current order ID
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
         window.signature = this.signature;
+
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        this.customerDisplayChannel.onmessage = (event) => {
+            // Listen for updates when a new order is opened or the order changes
+            if (event.data && event.data.new_order_id) {
+                this.handleOrderChange(event.data.new_order_id);
+            }
+        };
 
         this.drawing = false;
-
-        // Ensure we call loadSalesTax only once we have a valid order ID
+        
+        // Check and fetch tax for the current order at setup
         this.checkOrderAndFetchTax();
     },
 
+    // Function to handle order changes
+    async handleOrderChange(newOrderId) {
+        if (this.currentOrderId !== newOrderId) {
+            this.currentOrderId = newOrderId;
+            console.log("New Order ID received:", newOrderId);
+            this.loadSalesTax(newOrderId);  // Fetch and load tax for the new order
+        }
+    },
+
     async checkOrderAndFetchTax() {
-        console.log("Checking if order is available...");
         const orderId = await this.getOrderId();  // Dynamically retrieve the order ID
 
         if (orderId) {
             console.log("Order ID retrieved:", orderId);
+            this.currentOrderId = orderId;
             this.loadSalesTax(orderId);  // Pass the order ID directly
         } else {
             console.warn("Order ID could not be retrieved.");
@@ -37,13 +52,12 @@ patch(CustomerDisplay.prototype, {
 
     async getOrderId() {
         // Replace this with the correct logic for dynamically getting the order ID
-        // Assuming `this.order` is not immediately available
         const orderId = 16;  // Example static ID or dynamic logic here
         return orderId;
     },
 
     async loadSalesTax(orderId) {
-        console.log("loadSalesTax: Fetching sales tax for order ID:", orderId);  // Log the order ID
+        console.log("loadSalesTax: Fetching sales tax for order ID:", orderId);
 
         try {
             const response = await fetch('/pos/get_sales_tax', {
@@ -55,17 +69,17 @@ patch(CustomerDisplay.prototype, {
                 body: JSON.stringify({
                     jsonrpc: "2.0",
                     method: "call",
-                    params: { id: orderId },  // Use the specific order ID here
+                    params: { id: orderId },
                     id: Math.floor(Math.random() * 1000)
                 })
             });
             const orderData = await response.json();
             
-            console.log("loadSalesTax: Received orderData:", orderData);  // Log the response
+            console.log("loadSalesTax: Received orderData:", orderData);
 
             if (orderData.result && orderData.result.sales_tax !== undefined) {
                 this.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
-                console.log("loadSalesTax: Updated salesTaxDisplay:", this.salesTaxDisplay);  // Log the updated sales tax
+                console.log("loadSalesTax: Updated salesTaxDisplay:", this.salesTaxDisplay);
                 this.renderSalesTax();
             } else {
                 console.error("loadSalesTax: Sales tax not found in response:", orderData);
@@ -105,7 +119,7 @@ patch(CustomerDisplay.prototype, {
     },
 
     get salesTaxDisplayValue() {
-        return this.salesTaxDisplay || '0.00';  // Default to '0.00' if undefined
+        return this.salesTaxDisplay || '0.00';
     },
 
     onSubmitSignature() {
