@@ -7,10 +7,10 @@ import { useService } from "@web/core/utils/hooks";
 patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
-    
+
         this.salesTaxDisplay = '0.00';
-    
-        // Initialize the BroadcastChannel for real-time updates
+
+        // Initialize the BroadcastChannel to receive updates
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         this.customerDisplayChannel.onmessage = (event) => {
             const taxData = event.data;

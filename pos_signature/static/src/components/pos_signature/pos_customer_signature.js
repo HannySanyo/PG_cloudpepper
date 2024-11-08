@@ -11,7 +11,7 @@ import { getOnNotified } from "@point_of_sale/utils";
 patch(PosOrder.prototype, {
     setup() {
         super.setup(...arguments);
-        console.log("Setting up PosOrder with conditional tax updates.");
+        console.log("Setting up PosOrder with direct tax updates.");
 
         // Initialize previous tax value to detect changes
         this.previousTaxValue = null;
@@ -19,15 +19,21 @@ patch(PosOrder.prototype, {
         // Initialize BroadcastChannel
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Update tax in localStorage initially
+        // Update localStorage initially if any tax exists
         this.updateLocalStorageWithTax();
 
-        // Only update tax in localStorage on order modifications
+        // Listen for events that might modify tax and trigger updates
+        this.onOrderChanges();
     },
 
-    // Function to update tax data in localStorage if there is a change
+    onOrderChanges() {
+        // Listen for key order modification events
+        this.env.pos.get_order().on('change', this.updateLocalStorageWithTax.bind(this));
+    },
+
     updateLocalStorageWithTax() {
-        const currentTax = this.get_total_tax ? this.get_total_tax() : 0;
+        const order = this.env.pos.get_order();
+        const currentTax = order ? order.get_total_tax() : 0;
 
         if (currentTax !== this.previousTaxValue) {
             const taxData = {
@@ -37,12 +43,8 @@ patch(PosOrder.prototype, {
             localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
             console.log("Updated localStorage with tax data:", taxData);
 
-            // Ensure customerDisplayChannel is initialized before sending message
-            if (this.customerDisplayChannel) {
-                this.customerDisplayChannel.postMessage(taxData);
-            } else {
-                console.warn("BroadcastChannel not available.");
-            }
+            // Notify customer display of tax update
+            this.customerDisplayChannel.postMessage(taxData);
 
             this.previousTaxValue = currentTax;
         }
