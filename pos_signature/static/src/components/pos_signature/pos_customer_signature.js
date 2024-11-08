@@ -1,7 +1,3 @@
-/* Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) */
-/* See LICENSE file for full copyright and licensing details. */
-/* License URL : <https://store.webkul.com/license.html/> */
-
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { _t } from "@web/core/l10n/translation";
 import { patch } from "@web/core/utils/patch";
@@ -11,7 +7,7 @@ import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { WaitingForSignature } from "@pos_signature/app/popups/waiting_for_signature_popup/waiting_for_signature_popup";
 import { getOnNotified } from "@point_of_sale/utils";
 
-// Patch for PosOrder to handle customer display data and sales tax updates
+// Patch for PosOrder to manage sales tax updates and customer display data
 patch(PosOrder.prototype, {
     setup(options) {
         this.signature = options.signature || "";
@@ -38,6 +34,10 @@ patch(PosOrder.prototype, {
     },
 
     getCustomerDisplayData() {
+        console.log("getCustomerDisplayData called. Checking for tax update...");
+        // Trigger the tax update check whenever display data is fetched
+        this.updateLocalStorageWithTax();
+
         const res = {
             ...super.getCustomerDisplayData(),
             signature: this.signature || "",
@@ -50,7 +50,9 @@ patch(PosOrder.prototype, {
 
     updateLocalStorageWithTax() {
         const currentTax = this.get_total_tax ? this.get_total_tax() : 0;
+        console.log("updateLocalStorageWithTax called. Current tax calculated:", currentTax);
 
+        // Only update localStorage if there's an actual change in tax
         if (currentTax !== this.previousTaxValue) {
             const taxData = {
                 sales_tax: currentTax,
@@ -71,6 +73,8 @@ patch(PosOrder.prototype, {
 
             // Update previousTaxValue to reflect the latest stored value
             this.previousTaxValue = currentTax;
+        } else {
+            console.log("No change in tax. Skipping localStorage update.");
         }
     }
 });
