@@ -9,6 +9,7 @@ import { getOnNotified } from "@point_of_sale/utils";
 
 // Patch PosOrder to listen for order changes and broadcast updated data
 patch(PosOrder.prototype, {
+    
     setup(options) {
         this.signature = options.signature || "";
         this.waiting_for_signature = false;
@@ -34,28 +35,31 @@ patch(PosOrder.prototype, {
         }
     },
 
-    add_line: function (line) {
+    add_line(line) {
         this._super(line);
         this._broadcastOrderUpdates();
     },
 
-    remove_line: function (line) {
+    remove_line(line) {
         this._super(line);
         this._broadcastOrderUpdates();
     },
 
-    _broadcastOrderUpdates: function () {
+    _broadcastOrderUpdates() {  // Ensure only one _broadcastOrderUpdates function exists here
         const total = this.get_total_with_tax();
         const tax = this.get_total_tax();
 
-        // Broadcast the updated total and tax values
-        const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-        displayChannel.postMessage({
-            total: total,
-            tax: tax
-        });
+        if (typeof total === 'number' && typeof tax === 'number') {
+            const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+            displayChannel.postMessage({
+                total: total,
+                tax: tax
+            });
+        } else {
+            console.warn("Total or tax is not a valid number:", total, tax);
+        }
     }, 
-    
+
     // Method to export additional data for printing
     export_for_printing(baseUrl, headerData) {
         return {

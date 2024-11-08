@@ -39,26 +39,31 @@ patch(CustomerDisplay.prototype, {
     updateDisplayValues(total, tax) {
         console.log("Updating display values. Total:", total, "Tax:", tax);
     
-        // Set default values if total or tax is undefined
-        total = total !== undefined ? total : 0;
-        tax = tax !== undefined ? tax : 0;
+        total = total ?? 0;  // Default to 0 if undefined
+        tax = tax ?? 0;      // Default to 0 if undefined
     
-        const totalElement = document.querySelector("#totalDisplay");  // Adjust selectors as needed
-        const taxElement = document.querySelector("#salesTaxDisplay");
+        const updateElements = () => {
+            const totalElement = document.querySelector("#totalDisplay");
+            const taxElement = document.querySelector("#salesTaxDisplay");
     
-        if (totalElement) {
-            totalElement.textContent = total.toFixed(2);
-            console.log("Total successfully updated in DOM:", total.toFixed(2));
-        } else {
-            console.warn("Total display element not found in DOM.");
-        }
+            if (totalElement) {
+                totalElement.textContent = total.toFixed(2);
+                console.log("Total successfully updated in DOM:", total.toFixed(2));
+            } else {
+                console.warn("Total display element not found in DOM. Retrying...");
+                setTimeout(updateElements, 500);
+            }
     
-        if (taxElement) {
-            taxElement.textContent = tax.toFixed(2);
-            console.log("Tax successfully updated in DOM:", tax.toFixed(2));
-        } else {
-            console.warn("Tax display element not found in DOM.");
-        }
+            if (taxElement) {
+                taxElement.textContent = tax.toFixed(2);
+                console.log("Tax successfully updated in DOM:", tax.toFixed(2));
+            } else {
+                console.warn("Tax display element not found in DOM. Retrying...");
+                setTimeout(updateElements, 500);
+            }
+        };
+    
+        updateElements();
     },
 
     // Handle page changes: load tax data if the order display is active
