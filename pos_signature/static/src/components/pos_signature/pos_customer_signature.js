@@ -18,24 +18,25 @@ patch(PosOrder.prototype, {
         // Initialize BroadcastChannel for customer display updates
         try {
             this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+            console.log("BroadcastChannel initialized successfully for customer display.");
         } catch (error) {
             console.error("BroadcastChannel initialization failed:", error);
         }
 
-        // Call the display transition on setup if needed
-        this.triggerOrderDisplayTransition();
+        // Trigger initial update on setup if necessary
+        this.sendInitialDisplayUpdate();
     },
-    
-    // Function to trigger the transition to the order screen
-    triggerOrderDisplayTransition() {
-        console.log("Triggering order display transition.");
+
+    // Function to send initial order data to customer display
+    sendInitialDisplayUpdate() {
+        console.log("Sending initial display update for order data.");
         if (this.customerDisplayChannel) {
             this.customerDisplayChannel.postMessage({
                 page: "order_display",
-                sales_tax: this.previousTaxValue || 0  // Include tax if needed
+                sales_tax: this.previousTaxValue || 0  // Provide initial tax value
             });
         } else {
-            console.warn("Customer display channel is unavailable for transition.");
+            console.warn("Customer display channel is unavailable for initial display update.");
         }
     },
 
@@ -54,6 +55,7 @@ patch(PosOrder.prototype, {
             // Send tax update to customer display via BroadcastChannel
             if (this.customerDisplayChannel) {
                 this.customerDisplayChannel.postMessage(taxData);
+                console.log("Tax data sent to customer display:", taxData);
             } else {
                 console.warn("Customer display channel is unavailable.");
             }
@@ -82,6 +84,7 @@ patch(PosOrder.prototype, {
             // Use BroadcastChannel to notify customer display of the tax update
             if (this.customerDisplayChannel) {
                 this.customerDisplayChannel.postMessage(taxData);
+                console.log("Tax data broadcasted to customer display:", taxData);
             } else {
                 console.warn("Customer display channel is unavailable.");
             }
@@ -103,6 +106,7 @@ patch(PaymentScreen.prototype, {
         // Initialize BroadcastChannel for real-time updates
         try {
             this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+            console.log("PaymentScreen BroadcastChannel initialized successfully.");
         } catch (error) {
             console.error("BroadcastChannel initialization failed:", error);
         }
@@ -114,6 +118,7 @@ patch(PaymentScreen.prototype, {
                 const order = this.env.pos?.get_order();
                 if (order && event.data.signature) {
                     order.signature = event.data.signature;
+                    console.log("Order signature updated from customer display.");
                 }
             };
         }

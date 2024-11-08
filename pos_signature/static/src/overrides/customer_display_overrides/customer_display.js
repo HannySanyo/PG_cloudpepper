@@ -13,40 +13,39 @@ patch(CustomerDisplay.prototype, {
         // Initialize BroadcastChannel for receiving updates
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         this.customerDisplayChannel.onmessage = (event) => {
-            console.log("Customer display received message:", event.data);  // Log received message for debugging
+            console.log("Customer display received message:", event.data); // Log received message
             const taxData = event.data;
-            
+
+            // Check if the data includes sales tax or page update instructions
             if (taxData && taxData.sales_tax !== undefined) {
                 this.salesTaxValue = taxData.sales_tax;
-                this.checkAndUpdateDisplay();
+                this.checkAndUpdateDisplay(); // Update tax display if applicable
             } else if (taxData.page === "order_display") {
-                console.log("Received instruction to transition to order display.");
-                this.loadOrderDisplay();
+                console.log("Received signal to display order details.");
+                this.handleOrderDisplayTransition(); // Handle natural order display transition
             }
         };
     },
 
-    // Method to transition to the order display page
-    loadOrderDisplay() {
-        console.log("Transitioning to order display page...");
-        this.currentPage = "order_display";  // Change page state to order display
-        this.checkAndUpdateDisplay();         // Call update to refresh elements
+    // Function to handle the page transition for order display
+    handleOrderDisplayTransition() {
+        console.log("Order display transition acknowledged by customer display.");
+
+        // Check if elements are ready for updates
+        this.checkAndUpdateDisplay();
     },
 
-    // Check and update the display if elements are available, retry if necessary
+    // Check and update the display if elements are available
     checkAndUpdateDisplay() {
-        if (this.currentPage !== "order_display") {
-            console.log("checkAndUpdateDisplay: Not on order display page, aborting update.");
-            return;
-        }
+        // Log the current page state and element status to aid in debugging
+        console.log("checkAndUpdateDisplay: Verifying if order display page is loaded.");
 
         const taxElement = document.querySelector("#salesTaxDisplay");
         if (taxElement) {
             taxElement.textContent = this.salesTaxValue.toFixed(2);
             console.log("Updated Sales Tax on Customer Display:", this.salesTaxValue);
         } else {
-            console.warn("Tax display element not found in DOM. Retrying...");
-            setTimeout(() => this.checkAndUpdateDisplay(), 500); // Retry after delay if not found
+            console.warn("Tax display element not found in DOM. Waiting for page transition...");
         }
     },
 
@@ -60,17 +59,18 @@ patch(CustomerDisplay.prototype, {
         }
     },
 
+    // Method to handle page change events, if naturally triggered by the POS
     async handlePageChange(pageName) {
         console.log("Handling page change to:", pageName);
         
         if (pageName === "order_display") {
-            console.log("Order display page loaded. Loading tax data...");
+            console.log("Order display page loaded. Preparing to load tax data...");
             
             if (!this.currentOrderId) {
                 console.warn("No currentOrderId found. Setting a test ID for debugging.");
-                this.currentOrderId = 16;  // Use a known order ID for testing
+                this.currentOrderId = 16; // Use a known order ID for testing
             }
-    
+
             if (this.currentOrderId) {
                 await this.loadSalesTax(this.currentOrderId);
                 this.renderSalesTax();
@@ -125,8 +125,7 @@ patch(CustomerDisplay.prototype, {
             taxElement.textContent = this.salesTaxDisplay;
             console.log("Sales tax successfully rendered to DOM. Updated textContent:", taxElement.textContent);
         } else {
-            console.warn("Tax display element not found in DOM. Retrying...");
-            setTimeout(() => this.renderSalesTax(), 500);  // Retry after delay
+            console.warn("Tax display element not found in DOM. Waiting for order display page...");
         }
     },
 
