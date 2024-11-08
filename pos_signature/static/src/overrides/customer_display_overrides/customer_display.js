@@ -48,14 +48,22 @@ patch(CustomerDisplay.prototype, {
     // Handle page changes: load tax data if the order display is active
     async handlePageChange(pageName) {
         console.log("Handling page change to:", pageName);
+        
         if (pageName === "order_display") {
             console.log("Order display page loaded. Loading tax data...");
+            
+            // Check if currentOrderId is available, and set a default for testing if it's missing
+            if (!this.currentOrderId) {
+                console.warn("No currentOrderId found. Setting a test ID for debugging.");
+                this.currentOrderId = 16;  // Use a known order ID for testing
+                
+                // Optionally, fetch the ID dynamically if you have a way to retrieve the active order ID here
+            }
+    
+            // Now attempt to load and render sales tax with the current or test Order ID
             if (this.currentOrderId) {
-                console.log("Current Order ID:", this.currentOrderId);
                 await this.loadSalesTax(this.currentOrderId);
                 this.renderSalesTax();
-            } else {
-                console.warn("No currentOrderId found when loading order display page.");
             }
         }
     },
