@@ -10,32 +10,29 @@ import { getOnNotified } from "@point_of_sale/utils";
 // Patch PosOrder to listen for order changes and broadcast updated data
 patch(PosOrder.prototype, {
 
-    setup(options) {
-        super.setup(...arguments, options);
+    setup() {
+        super.setup(...arguments);
     
-        // Retry mechanism with limit
-        let retryCount = 0;
-        const maxRetries = 10; // Limit to avoid infinite loop
-    
-        const setupListeners = () => {
+        let attemptCount = 0;
+        const maxAttempts = 10;
+        
+        const checkForPos = () => {
             if (this.pos) {
-                console.log("Setting up PosOrder event listener."); 
+                console.log("POS instance initialized after retries:", this.pos);
                 this.pos.on('change:selectedOrder', (newOrder) => {
-                    console.log("Selected order changed:", newOrder); 
-                    if (newOrder) {
-                        this._broadcastOrderUpdates(newOrder);
-                    }
+                    console.log("Order change detected:", newOrder);
+                    this.updateDisplayWithOrder(newOrder);
                 });
-            } else if (retryCount < maxRetries) {
-                console.warn(`this.pos is undefined; retrying setup... (${retryCount + 1}/${maxRetries})`);
-                retryCount++;
-                setTimeout(setupListeners, 500); 
+            } else if (attemptCount < maxAttempts) {
+                attemptCount++;
+                console.log(`Waiting for this.pos to initialize... (${attemptCount}/${maxAttempts})`);
+                setTimeout(checkForPos, 500);
             } else {
-                console.error("Unable to set up PosOrder event listener; this.pos remains undefined.");
+                console.error("Failed to initialize this.pos after multiple attempts.");
             }
         };
     
-        setupListeners();
+        checkForPos();
     },
 
     add_line(line) {
