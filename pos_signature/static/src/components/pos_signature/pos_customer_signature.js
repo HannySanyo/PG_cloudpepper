@@ -22,6 +22,9 @@ patch(PosOrder.prototype, {
 
         // Initialize previousTaxValue to track changes
         this.previousTaxValue = null;
+
+        // Initialize BroadcastChannel for customer display updates
+        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
     },
 
     export_for_printing(baseUrl, headerData) {
