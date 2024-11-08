@@ -9,31 +9,21 @@ import { getOnNotified } from "@point_of_sale/utils";
 
 // Patch PosOrder to handle tax data updates in local storage
 patch(PosOrder.prototype, {
-    setup() {
+    etup() {
         super.setup(...arguments);
-        console.log("Setting up PosOrder with direct tax updates.");
+        console.log("Setting up PosOrder for direct tax updates.");
 
-        // Initialize previous tax value to detect changes
+        // Set an initial value for previous tax to detect changes
         this.previousTaxValue = null;
-
-        // Initialize BroadcastChannel
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Update localStorage initially if any tax exists
+        // Initial call to store tax information at startup
         this.updateLocalStorageWithTax();
-
-        // Listen for events that might modify tax and trigger updates
-        this.onOrderChanges();
     },
 
-    onOrderChanges() {
-        // Listen for key order modification events
-        this.env.pos.get_order().on('change', this.updateLocalStorageWithTax.bind(this));
-    },
-
+    // Update localStorage only when there is a tax change
     updateLocalStorageWithTax() {
-        const order = this.env.pos.get_order();
-        const currentTax = order ? order.get_total_tax() : 0;
+        const currentTax = this.get_total_tax ? this.get_total_tax() : 0;
 
         if (currentTax !== this.previousTaxValue) {
             const taxData = {
@@ -43,14 +33,15 @@ patch(PosOrder.prototype, {
             localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
             console.log("Updated localStorage with tax data:", taxData);
 
-            // Notify customer display of tax update
+            // Send tax update to customer display via BroadcastChannel
             this.customerDisplayChannel.postMessage(taxData);
 
+            // Update previousTaxValue to reflect the latest stored value
             this.previousTaxValue = currentTax;
         }
     },
 
-    // Override methods that modify the order to ensure localStorage is updated
+    // Override order modification methods to trigger tax updates
     add_line(line) {
         this._super(line);
         this.updateLocalStorageWithTax();
