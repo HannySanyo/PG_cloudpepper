@@ -12,27 +12,23 @@ patch(PosOrder.prototype, {
 
     setup(options) {
         super.setup(...arguments, options);
-        console.log("Setting up PosOrder with options:", options); // Debug setup options
-
-        const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-
-        const originalPostMessage = displayChannel.postMessage;
-        displayChannel.postMessage = function (message) {
-            console.log("Intercepted postMessage with message:", message); 
-            console.trace("postMessage call trace"); // Shows call stack
-            originalPostMessage.call(displayChannel, message);
+    
+        const setupListeners = () => {
+            if (this.pos) {
+                console.log("Setting up PosOrder event listener.");
+                this.pos.on('change:selectedOrder', (newOrder) => {
+                    console.log("Selected order changed:", newOrder);
+                    if (newOrder) {
+                        this._broadcastOrderUpdates(newOrder);
+                    }
+                });
+            } else {
+                console.warn("this.pos is undefined; retrying setup...");
+                setTimeout(setupListeners, 500); // Retry after 500ms if `this.pos` is still undefined
+            }
         };
-
-        if (this.pos) {
-            this.pos.on('change:selectedOrder', (newOrder) => {
-                console.log("Selected order changed:", newOrder); // Log new selected order
-                if (newOrder) {
-                    this._broadcastOrderUpdates(newOrder);
-                }
-            });
-        } else {
-            console.warn("this.pos is undefined in PosOrder setup; event listener not added.");
-        }
+    
+        setupListeners(); // Initial call to set up listeners or retry
     },
 
     add_line(line) {
