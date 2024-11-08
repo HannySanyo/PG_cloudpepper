@@ -91,13 +91,19 @@ patch(CustomerDisplay.prototype, {
 
     renderSalesTax() {
         const taxElement = document.querySelector("#salesTaxDisplay");
-        if (taxElement) {
-            taxElement.innerText = this.salesTaxDisplay;
-            console.log("Tax element updated with:", this.salesTaxDisplay);  // Debug to confirm update
-        } else {
-            console.warn("Tax display element not found in DOM.");
+        
+        // Retry if the element is not found in the DOM
+        if (!taxElement) {
+            console.warn("Tax display element not found in DOM. Retrying...");
+            
+            // Try again after a short delay
+            setTimeout(() => this.renderSalesTax(), 100);
+            return;
         }
-    },
+    
+        // If the element exists, update its content
+        taxElement.textContent = this.salesTaxDisplay;
+    }
 
     onClickClear() {
         if (this.ctx) {
