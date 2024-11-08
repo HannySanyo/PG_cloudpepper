@@ -15,11 +15,40 @@ patch(CustomerDisplay.prototype, {
         this.customerDisplayChannel.onmessage = (event) => {
             const taxData = event.data;
             if (taxData && taxData.sales_tax !== undefined) {
-                this.updateDisplayValues(taxData.sales_tax);
+                this.salesTaxValue = taxData.sales_tax;
+                this.checkAndUpdateDisplay();
+            }
+        };
+
+        // Initialize sales tax value
+        this.salesTaxValue = 0;
+
+        // Listen for transition to the order screen
+        this.listenForOrderScreenTransition();
+    },
+    
+    listenForOrderScreenTransition() {
+        // This method listens for a message to trigger the transition to the order screen
+        this.customerDisplayChannel.onmessage = (event) => {
+            if (event.data.page === "order_display") {
+                console.log("Order display page activated on customer display.");
+                this.checkAndUpdateDisplay();
             }
         };
     },
-    
+
+    checkAndUpdateDisplay() {
+        // Ensure the order screen and tax display element are ready
+        const taxElement = document.querySelector("#salesTaxDisplay");
+        if (taxElement) {
+            taxElement.textContent = this.salesTaxValue.toFixed(2);
+            console.log("Updated Sales Tax on Customer Display:", this.salesTaxValue);
+        } else {
+            console.warn("Tax display element not found in DOM. Retrying...");
+            setTimeout(() => this.checkAndUpdateDisplay(), 500); // Retry after 500ms
+        }
+    },
+
     updateDisplayValues(tax) {
         const taxElement = document.querySelector("#salesTaxDisplay");
         if (taxElement) {
@@ -30,20 +59,17 @@ patch(CustomerDisplay.prototype, {
         }
     },
 
-    // Handle page changes: load tax data if the order display is active
     async handlePageChange(pageName) {
         console.log("Handling page change to:", pageName);
         
         if (pageName === "order_display") {
             console.log("Order display page loaded. Loading tax data...");
             
-            // Check if currentOrderId is available, and set a default for testing if it's missing
             if (!this.currentOrderId) {
                 console.warn("No currentOrderId found. Setting a test ID for debugging.");
                 this.currentOrderId = 16;  // Use a known order ID for testing
             }
     
-            // Attempt to load and render sales tax with the current or test Order ID
             if (this.currentOrderId) {
                 await this.loadSalesTax(this.currentOrderId);
                 this.renderSalesTax();
@@ -54,7 +80,6 @@ patch(CustomerDisplay.prototype, {
     async handleOrderChange(newOrderId) {
         console.log("Handling order change. New Order ID:", newOrderId, "Current Order ID:", this.currentOrderId);
         
-        // Update the tax, even if the order ID is the same
         this.currentOrderId = newOrderId;
         console.log("Updated currentOrderId to:", this.currentOrderId);
         await this.loadSalesTax(newOrderId);
