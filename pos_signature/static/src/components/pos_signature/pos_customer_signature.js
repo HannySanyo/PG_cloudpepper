@@ -12,18 +12,27 @@ patch(PosOrder.prototype, {
     setup() {
         super.setup(...arguments);
         console.log("Setting up PosOrder with tax updates.");
+        
+        // Update localStorage on setup and listen for order changes
         this.updateLocalStorageWithTax();
+
+        // Listen for changes to the selected order and update tax in localStorage
+        this.env.pos.on('change:selectedOrder', this.updateLocalStorageWithTax.bind(this));
     },
 
     updateLocalStorageWithTax() {
-        const tax = this.get_total_tax() || 0;
-        const data = { sales_tax: tax, timestamp: new Date().toISOString() };
-    
-        console.log("Updating localStorage with tax data:", data);
-        localStorage.setItem('customerDisplayTaxData', JSON.stringify(data));
+        const order = this.env.pos.get_order();
+        if (order && typeof order.get_total_tax === 'function') {
+            const tax = order.get_total_tax() || 0;
+            const data = { sales_tax: tax, timestamp: new Date().toISOString() };
+
+            console.log("Updating localStorage with tax data:", data);
+            localStorage.setItem('customerDisplayTaxData', JSON.stringify(data));
+        } else {
+            console.warn("Order or get_total_tax not available for updating tax data.");
+        }
     },
-    
-    // Ensure this function is called in events that update the order, e.g., add/remove line:
+
     add_line(line) {
         this._super(line);
         this.updateLocalStorageWithTax();
