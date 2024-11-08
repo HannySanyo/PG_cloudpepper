@@ -85,7 +85,7 @@ patch(PaymentScreen.prototype, {
         } else {
             this.dialog.add(SignaturePopupWidget, {});
         }
-    },
+    }, 
 
     async validateOrder(isForceValidate) {
         const currentOrder = this.pos.get_order();
