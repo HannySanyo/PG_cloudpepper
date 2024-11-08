@@ -21,16 +21,19 @@ patch(CustomerDisplay.prototype, {
         this.drawing = false;
 
         // Check if the order is available and load sales tax once
+        console.log("setup: Checking if order exists and has an ID");  // Log setup start
         if (this.order && this.order.id) {
             this.orderReady = true;
+            console.log("setup: Order is ready. ID:", this.order.id);  // Log if order is ready
             this.loadSalesTax();
+        } else {
+            console.warn("setup: Order or order ID is undefined");  // Log if order is missing
         }
     },
 
     async loadSalesTax() {
+        console.log("loadSalesTax: Function called");  // Log if loadSalesTax is called
         try {
-            console.log("Fetching sales tax for order ID:", this.order.id); // Log order ID
-    
             const response = await fetch('/pos/get_sales_tax', {
                 method: 'POST',
                 headers: {
@@ -46,18 +49,18 @@ patch(CustomerDisplay.prototype, {
             });
             const orderData = await response.json();
             
-            console.log("Received orderData:", orderData); // Log the full response
-    
+            console.log("loadSalesTax: Received orderData:", orderData);  // Log the response
+
             // Check if sales tax is present in the response
             if (orderData.result && orderData.result.sales_tax !== undefined) {
                 this.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
-                console.log("Updated salesTaxDisplay:", this.salesTaxDisplay); // Log the updated sales tax
+                console.log("loadSalesTax: Updated salesTaxDisplay:", this.salesTaxDisplay);  // Log the updated sales tax
                 this.renderSalesTax(); // Manually render sales tax directly
             } else {
-                console.error("Sales tax not found in response:", orderData);
+                console.error("loadSalesTax: Sales tax not found in response:", orderData);
             }
         } catch (error) {
-            console.error("Error fetching sales tax:", error);
+            console.error("loadSalesTax: Error fetching sales tax:", error);
         }
     },
 
