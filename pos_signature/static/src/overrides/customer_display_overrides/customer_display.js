@@ -19,12 +19,9 @@ patch(CustomerDisplay.prototype, {
         window.signature = this.signature;
 
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-        
-        console.log("Setting up BroadcastChannel listener...");
         this.customerDisplayChannel.onmessage = (event) => {
-            if (event.data && event.data.new_order_id) {
-                console.log("Received new order ID through BroadcastChannel:", event.data.new_order_id);
-                this.handleOrderChange(event.data.new_order_id);
+            if (event.data) {
+                this.updateDisplayValues(event.data.total, event.data.tax);
             }
         };
 
@@ -33,6 +30,19 @@ patch(CustomerDisplay.prototype, {
             console.log("Page change detected:", event.detail.pageName);
             this.handlePageChange(event.detail.pageName);
         });
+    },
+
+    updateDisplayValues(total, tax) {
+        const totalElement = document.querySelector("#totalDisplay");  // Adjust selectors as needed
+        const taxElement = document.querySelector("#salesTaxDisplay");
+
+        if (totalElement) {
+            totalElement.textContent = total.toFixed(2);
+        }
+
+        if (taxElement) {
+            taxElement.textContent = tax.toFixed(2);
+        }
     },
 
     // Handle page changes: load tax data if the order display is active

@@ -34,6 +34,28 @@ patch(PosOrder.prototype, {
         }
     },
 
+    add_line: function (line) {
+        this._super(line);
+        this._broadcastOrderUpdates();
+    },
+
+    remove_line: function (line) {
+        this._super(line);
+        this._broadcastOrderUpdates();
+    },
+
+    _broadcastOrderUpdates: function () {
+        const total = this.get_total_with_tax();
+        const tax = this.get_total_tax();
+
+        // Broadcast the updated total and tax values
+        const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        displayChannel.postMessage({
+            total: total,
+            tax: tax
+        });
+    }, 
+    
     // Method to export additional data for printing
     export_for_printing(baseUrl, headerData) {
         return {
