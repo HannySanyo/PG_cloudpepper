@@ -18,15 +18,20 @@ patch(PosOrder.prototype, {
         // Broadcast channel for updating customer display
         const customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Broadcast order data whenever there's a change in the active order
-        this.pos.on('change:selectedOrder', (newOrder) => {
-            if (newOrder) {
-                customerDisplayChannel.postMessage({
-                    new_order_id: newOrder.id,
-                    sales_tax: newOrder.get_total_tax() // Assuming a method exists for total tax
-                });
-            }
-        });
+        // Ensure this.pos exists before attempting to set up an event listener
+        if (this.pos) {
+            // Broadcast order data whenever there's a change in the active order
+            this.pos.on('change:selectedOrder', (newOrder) => {
+                if (newOrder && typeof newOrder.get_total_tax === 'function') {  // Ensure get_total_tax exists
+                    customerDisplayChannel.postMessage({
+                        new_order_id: newOrder.id,
+                        sales_tax: newOrder.get_total_tax()
+                    });
+                }
+            });
+        } else {
+            console.warn("this.pos is undefined in PosOrder setup, event listener not added.");
+        }
     },
 
     // Method to export additional data for printing
@@ -49,47 +54,52 @@ patch(PosOrder.prototype, {
 
 // Patch PaymentScreen to initialize broadcasting on setup and broadcast changes in sales tax
 patch(PaymentScreen.prototype, {
-
     setup() {
-        super.setup(...arguments);        
-        const currentOrder = this.pos.get_order();
+        super.setup(...arguments);
         
-        if (this.pos.config.customer_display_type === "local") {
-            const customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        // Ensure this.pos exists before setting up functionality
+        if (this.pos) {
+            const currentOrder = this.pos.get_order();
             
-            // Listen for any local customer display updates, especially signature updates
-            customerDisplayChannel.onmessage = (event) => {
-                if (event.data.signature) {
-                    currentOrder.signature = event.data.signature;
-                }
-            };
+            if (this.pos.config.customer_display_type === "local") {
+                const customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-            // Broadcast sales tax whenever it updates
-            this.pos.on('change:selectedOrder', (newOrder) => {
-                if (newOrder) {
-                    customerDisplayChannel.postMessage({
-                        new_order_id: newOrder.id,
-                        sales_tax: newOrder.get_total_tax() // Assuming method to get total tax
-                    });
-                }
-            });
-        }
-        
-        // For remote, use the bus for customer signature update notification
-        if (this.pos.config.customer_display_type === "remote") {
-            this.onNotified = getOnNotified(this.pos.bus, this.pos.config.access_token);
-            this.onNotified("UPDATE_CUSTOMER_SIGNATURE", (signature) => {
-                currentOrder.signature = signature;
-            });
+                // Listen for any local customer display updates, especially signature updates
+                customerDisplayChannel.onmessage = (event) => {
+                    if (event.data.signature) {
+                        currentOrder.signature = event.data.signature;
+                    }
+                };
+
+                // Broadcast sales tax whenever it updates
+                this.pos.on('change:selectedOrder', (newOrder) => {
+                    if (newOrder && typeof newOrder.get_total_tax === 'function') {  // Ensure get_total_tax exists
+                        customerDisplayChannel.postMessage({
+                            new_order_id: newOrder.id,
+                            sales_tax: newOrder.get_total_tax()
+                        });
+                    }
+                });
+            }
+
+            // For remote, use the bus for customer signature update notification
+            if (this.pos.config.customer_display_type === "remote") {
+                this.onNotified = getOnNotified(this.pos.bus, this.pos.config.access_token);
+                this.onNotified("UPDATE_CUSTOMER_SIGNATURE", (signature) => {
+                    currentOrder.signature = signature;
+                });
+            }
+        } else {
+            console.warn("this.pos is undefined in PaymentScreen setup.");
         }
     },
 
     // Show the signature popup if required
     async add_signature(event) {
-        const currentOrder = this.pos.get_order();
+        const currentOrder = this.pos?.get_order();
         
-        if (this.pos.config.add_signature_from === 'customer_display' && ['local','remote'].includes(this.pos.config.customer_display_type)) {
-            if (currentOrder.signature === '') {
+        if (this.pos?.config.add_signature_from === 'customer_display' && ['local', 'remote'].includes(this.pos.config.customer_display_type)) {
+            if (currentOrder?.signature === '') {
                 currentOrder.waiting_for_signature = true;
             }
             this.dialog.add(WaitingForSignature, {});
@@ -100,8 +110,8 @@ patch(PaymentScreen.prototype, {
 
     // Validate the order, enforcing signature if required
     async validateOrder(isForceValidate) {
-        if (this.pos.config.enable_pos_signature && this.pos.config.set_signature_mandatory) {
-            if (this.pos.get_order().signature === '') {
+        if (this.pos?.config.enable_pos_signature && this.pos.config.set_signature_mandatory) {
+            if (this.pos?.get_order().signature === '') {
                 this.env.services.dialog.add(AlertDialog, {
                     title: _t("Signature Required"),
                     body: _t("Please Add Signature"),
