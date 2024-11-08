@@ -41,28 +41,23 @@ class PosCustomerDisplayController(http.Controller):
         :param id: ID of the POS order for which to retrieve tax info.
         :return: JSON response with 'sales_tax' amount or an error message.
         """
+        _logger.info("Fetching sales tax for order ID: %s", id)
+        
+        if not id:
+            _logger.warning("Order ID not provided for sales tax retrieval.")
+            return {'error': 'Order ID not provided'}
+
         try:
-            # Log the entire request parameters to see what is actually received
-            _logger.info("Request params: %s", request.params)
-
-            # Check if id is provided
-            if id is None:
-                return {'error': 'Order ID not provided'}
-
-            # Explicit search by ID to ensure retrieval
-            order = request.env['pos.order'].sudo().search([('id', '=', int(id))], limit=1)
-
-            # Check if the order exists and calculate tax
+            order = self._get_order_by_id(id)
             if not order:
+                _logger.warning("Order not found with ID: %s", id)
                 return {'error': 'Order not found'}
-            
-            # Get the sales tax from the order
-            sales_tax = order.amount_tax
 
-            # Return the sales tax in JSON format
+            sales_tax = order.amount_tax
+            _logger.info("Sales tax for order ID %s: %s", id, sales_tax)
             return {'sales_tax': sales_tax}
         except Exception as e:
-            _logger.error("Error fetching sales tax: %s", e)
+            _logger.error("Error fetching sales tax for order ID %s: %s", id, e)
             return {'error': str(e)}
 
     @http.route('/pos/get_order_id', type='json', auth='user', methods=['POST'])
@@ -72,11 +67,35 @@ class PosCustomerDisplayController(http.Controller):
         :param amount: Total amount of the POS order for which to retrieve the ID.
         :return: JSON response with the 'id' of the matching order or an error message.
         """
+        _logger.info("Fetching order ID for amount: %s", amount)
+        
+        if amount is None:
+            _logger.warning("Amount not provided for order ID retrieval.")
+            return {'error': 'Amount not provided'}
+
         try:
             order = request.env['pos.order'].sudo().search([('amount_total', '=', amount)], limit=1)
             if not order:
+                _logger.warning("Order not found for amount: %s", amount)
                 return {'error': 'Order not found'}
+            
+            _logger.info("Order ID %s found for amount: %s", order.id, amount)
             return {'id': order.id}
         except Exception as e:
-            _logger.error("Error fetching order ID: %s", e)
+            _logger.error("Error fetching order ID for amount %s: %s", amount, e)
             return {'error': str(e)}
+
+    def _get_order_by_id(self, order_id):
+        """
+        Helper method to retrieve an order by ID.
+        :param order_id: The ID of the POS order.
+        :return: POS order record or None if not found.
+        """
+        try:
+            order = request.env['pos.order'].sudo().search([('id', '=', int(order_id))], limit=1)
+            if order:
+                _logger.info("Order retrieved successfully for ID: %s", order_id)
+            return order
+        except Exception as e:
+            _logger.error("Error retrieving order with ID %s: %s", order_id, e)
+            return None

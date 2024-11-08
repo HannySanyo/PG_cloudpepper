@@ -5,37 +5,21 @@ import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
 
 patch(CustomerDisplay.prototype, {
-    setup() {
+    etup() {
         super.setup(...arguments);
-        
-        console.log("Setting up CustomerDisplay instance...");
-        window.customerDisplayInstance = this;
 
-        this.signature = '';
+        console.log("Setting up CustomerDisplay instance with localStorage polling...");
         this.salesTaxDisplay = '0.00';
-        this.currentOrderId = null;
-        this.orm = useService("orm");
-        this.my_canvas = useRef('my_canvas');
-        window.signature = this.signature;
+        this.pollLocalStorageForTax();
+    },
 
-        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-        this.customerDisplayChannel.onmessage = (event) => {
-            console.log("Received Broadcast Message:", event.data); // Log entire event data structure
-        
-            const { tax } = event.data;
-            if (tax !== undefined) {
-                this.updateDisplayValues(tax);
-                console.log("Updating Display with Tax:", tax);
-            } else {
-                console.warn("Tax value missing in received message:", event.data);
+    pollLocalStorageForTax() {
+        setInterval(() => {
+            const taxData = JSON.parse(localStorage.getItem('customerDisplayTaxData') || '{}');
+            if (taxData && taxData.tax !== undefined) {
+                this.updateDisplayValues(taxData.tax);
             }
-        };
-
-        console.log("Setting up page:change event listener...");
-        window.addEventListener("page:change", (event) => {
-            console.log("Page change detected:", event.detail.pageName);
-            this.handlePageChange(event.detail.pageName);
-        });
+        }, 1000);  // Poll every 1 second
     },
 
     updateDisplayValues(tax) {
@@ -46,7 +30,6 @@ patch(CustomerDisplay.prototype, {
             console.log("Updated Sales Tax on Customer Display:", tax);
         } else {
             console.warn("Tax display element not found in DOM. Retrying...");
-            setTimeout(() => this.updateDisplayValues(tax), 500);  // Retry after delay
         }
     },
 

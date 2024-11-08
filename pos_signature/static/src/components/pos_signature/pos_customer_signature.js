@@ -10,55 +10,40 @@ import { getOnNotified } from "@point_of_sale/utils";
 // Patch PosOrder to listen for order changes and broadcast updated data
 patch(PosOrder.prototype, {
 
-    setup() {
-        super.setup(...arguments); 
-    
-        let attemptCount = 0;
-        const maxAttempts = 10;
-        
-        const checkForPos = () => {
-            if (this.pos) {
-                console.log("POS instance initialized after retries:", this.pos);
-                this.pos.on('change:selectedOrder', (newOrder) => {
-                    console.log("Order change detected:", newOrder);
-                    this.updateDisplayWithOrder(newOrder);
-                });
-            } else if (attemptCount < maxAttempts) {
-                attemptCount++;
-                console.log(`Waiting for this.pos to initialize... (${attemptCount}/${maxAttempts})`);
-                setTimeout(checkForPos, 500);
+    etup() {
+        super.setup(...arguments);
+
+        // Initialize order event listener without using `this.pos`
+        this.initializeOrderListener();
+    },
+
+    initializeOrderListener() {
+        const orderListenerInterval = setInterval(() => {
+            if (typeof this.get_total_tax === 'function') {
+                this.updateLocalStorageWithTax();
+                clearInterval(orderListenerInterval); // Stop interval once ready
             } else {
-                console.error("Failed to initialize this.pos after multiple attempts.");
+                console.warn("Waiting for `get_total_tax` to be available on PosOrder.");
             }
-        };
-    
-        checkForPos();
+        }, 500);
+    },
+
+    updateLocalStorageWithTax() {
+        const tax = this.get_total_tax() || 0;
+        const data = { tax, timestamp: new Date().toISOString() };
+
+        console.log("Updating localStorage with tax data:", data);
+        localStorage.setItem('customerDisplayTaxData', JSON.stringify(data));
     },
 
     add_line(line) {
-        console.log("Adding line to order:", line); // Log line details
         this._super(line);
-        this._broadcastOrderUpdates(this);
-    },
-    
-    remove_line(line) {
-        console.log("Removing line from order:", line); // Log line removal
-        this._super(line);
-        this._broadcastOrderUpdates(this);
+        this.updateLocalStorageWithTax();
     },
 
-    _broadcastOrderUpdates(order) {
-        const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-        
-        // Ensure only tax data is sent, and log if tax is undefined
-        const tax = typeof order.get_total_tax === 'function' ? order.get_total_tax() : 0;
-        if (tax === undefined) {
-            console.warn("Tax is undefined in _broadcastOrderUpdates.");
-        }
-        const message = { tax: tax };
-        
-        console.log("Broadcasting tax message:", message);
-        displayChannel.postMessage(message);
+    remove_line(line) {
+        this._super(line);
+        this.updateLocalStorageWithTax();
     },
 
     export_for_printing(baseUrl, headerData) {
