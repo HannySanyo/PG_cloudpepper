@@ -13,16 +13,16 @@ patch(CustomerDisplay.prototype, {
         // Initialize BroadcastChannel for receiving updates
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         this.customerDisplayChannel.onmessage = (event) => {
-            console.log("Customer display received message:", event.data); // Log received message
+            console.log("Customer display received message:", event.data);
             const taxData = event.data;
-
-            // Check if the data includes sales tax or page update instructions
-            if (taxData && taxData.sales_tax !== undefined) {
+            
+            if (taxData.page === "order_display") {
+                console.log("Triggering transition to order display page.");
+                this.handleOrderDisplayTransition();
+            } else if (taxData && taxData.sales_tax !== undefined) {
+                console.log("Updating display with new sales tax.");
                 this.salesTaxValue = taxData.sales_tax;
-                this.checkAndUpdateDisplay(); // Update tax display if applicable
-            } else if (taxData.page === "order_display") {
-                console.log("Received signal to display order details.");
-                this.handleOrderDisplayTransition(); // Handle natural order display transition
+                this.checkAndUpdateDisplay();
             }
         };
     },
@@ -30,9 +30,12 @@ patch(CustomerDisplay.prototype, {
     // Function to handle the page transition for order display
     handleOrderDisplayTransition() {
         console.log("Order display transition acknowledged by customer display.");
-
-        // Check if elements are ready for updates
-        this.checkAndUpdateDisplay();
+        if (document.querySelector("#orderScreen")) {  // Make sure order screen elements are ready
+            this.checkAndUpdateDisplay();
+        } else {
+            console.warn("Order display elements not yet loaded.");
+            setTimeout(this.checkAndUpdateDisplay.bind(this), 300); // Retry after delay
+        }
     },
 
     // Check and update the display if elements are available

@@ -31,10 +31,12 @@ patch(PosOrder.prototype, {
     sendInitialDisplayUpdate() {
         console.log("Sending initial display update for order data.");
         if (this.customerDisplayChannel) {
-            this.customerDisplayChannel.postMessage({
-                page: "order_display",
-                sales_tax: this.previousTaxValue || 0  // Provide initial tax value
-            });
+            setTimeout(() => {
+                this.customerDisplayChannel.postMessage({
+                    page: "order_display",
+                    sales_tax: this.previousTaxValue || 0,
+                });
+            }, 500); // Delay slightly to ensure channel readiness
         } else {
             console.warn("Customer display channel is unavailable for initial display update.");
         }
