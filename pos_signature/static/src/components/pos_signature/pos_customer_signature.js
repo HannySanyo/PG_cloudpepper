@@ -9,22 +9,24 @@ import { getOnNotified } from "@point_of_sale/utils";
 
 // Patch PosOrder to handle tax data updates in local storage
 patch(PosOrder.prototype, {
-    etup() {
+    setup() {
         super.setup(...arguments);
-        console.log("Setting up PosOrder for direct tax updates.");
+        console.log("Setting up PosOrder for conditional tax updates.");
 
-        // Set an initial value for previous tax to detect changes
+        // Initialize the previous tax value to detect changes
         this.previousTaxValue = null;
-        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Initial call to store tax information at startup
-        this.updateLocalStorageWithTax();
+        // Initialize BroadcastChannel for customer display updates
+        if (!this.customerDisplayChannel) {
+            this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        }
     },
 
-    // Update localStorage only when there is a tax change
+    // Method to update localStorage when there's a tax change
     updateLocalStorageWithTax() {
         const currentTax = this.get_total_tax ? this.get_total_tax() : 0;
 
+        // Update localStorage and BroadcastChannel only on tax change
         if (currentTax !== this.previousTaxValue) {
             const taxData = {
                 sales_tax: currentTax,
@@ -41,52 +43,46 @@ patch(PosOrder.prototype, {
         }
     },
 
-    // Override order modification methods to trigger tax updates
-    add_line(line) {
-        this._super(line);
-        this.updateLocalStorageWithTax();
-    },
-
-    remove_line(line) {
-        this._super(line);
-        this.updateLocalStorageWithTax();
-    },
-
-    set_discount(line, discount) {
-        this._super(line, discount);
-        this.updateLocalStorageWithTax();
-    },
-
-    export_for_printing(baseUrl, headerData) {
-        console.log("Exporting for printing with baseUrl:", baseUrl, "and headerData:", headerData);
-        return {
-            ...super.export_for_printing(...arguments),
-            signature: this.signature,
-        };
-    },
-
+    // Call getCustomerDisplayData to update tax data
     getCustomerDisplayData() {
-        const data = {
-            ...super.getCustomerDisplayData(),
-            signature: this.signature || "",
-            waiting_for_signature: this.waiting_for_signature || false,
-            terms_conditions_link: this.config_id.terms_conditions_link || false,
-        };
-        console.log("Customer display data:", data);
+        const data = this._super();
+
+        // Get current tax amount
+        const currentTax = this.get_total_tax ? this.get_total_tax() : 0;
+
+        // Check if tax changed, then update localStorage and broadcast
+        if (currentTax !== this.previousTaxValue) {
+            const taxData = {
+                sales_tax: currentTax,
+                timestamp: new Date().toISOString(),
+            };
+            localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
+            console.log("Updated localStorage with tax data:", taxData);
+
+            // BroadcastChannel to notify customer display of the tax update
+            if (!this.customerDisplayChannel) {
+                this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+            }
+            this.customerDisplayChannel.postMessage(taxData);
+
+            // Update previousTaxValue to reflect the stored value
+            this.previousTaxValue = currentTax;
+        }
+
         return data;
     }
 });
 
-// Patch PaymentScreen to initialize customer display channel and handle tax broadcasting without `this.pos`
+// Patch PaymentScreen to initialize customer display channel and handle tax broadcasting
 patch(PaymentScreen.prototype, {
     setup() {
         super.setup(...arguments);
         console.log("Setting up PaymentScreen.");
 
-        // Initialize BroadcastChannel only once
+        // Initialize BroadcastChannel for real-time updates
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Listen for messages related to signature updates
+        // Listen for signature updates from the customer display
         this.customerDisplayChannel.onmessage = (event) => {
             console.log("Received customer display message:", event.data);
             const order = this.env.pos.get_order();
@@ -94,24 +90,6 @@ patch(PaymentScreen.prototype, {
                 order.signature = event.data.signature;
             }
         };
-
-        // Trigger broadcast when order tax data updates
-        this.env.pos.on('change:selectedOrder', this.broadcastOrderUpdates.bind(this));
-    },
-
-    broadcastOrderUpdates() {
-        const order = this.env.pos.get_order();
-        if (order && typeof order.get_total_tax === 'function') {
-            const tax = order.get_total_tax();
-
-            console.log("Broadcasting sales tax for order:", tax);
-            this.customerDisplayChannel.postMessage({
-                new_order_id: order.id,
-                sales_tax: tax,
-            });
-        } else {
-            console.warn("Order or `get_total_tax` not available for broadcasting.");
-        }
     },
 
     async add_signature(event) {
