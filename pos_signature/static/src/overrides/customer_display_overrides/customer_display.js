@@ -91,18 +91,13 @@ patch(CustomerDisplay.prototype, {
 
     renderSalesTax() {
         const taxElement = document.querySelector("#salesTaxDisplay");
-        
-        // Retry if the element is not found in the DOM
-        if (!taxElement) {
+        if (taxElement) {
+            taxElement.textContent = this.salesTaxDisplay;
+            console.log("Tax display updated:", this.salesTaxDisplay);
+        } else {
             console.warn("Tax display element not found in DOM. Retrying...");
-            
-            // Try again after a short delay
-            setTimeout(() => this.renderSalesTax(), 100);
-            return;
+            setTimeout(() => this.renderSalesTax(), 100); // Retry after 100ms
         }
-    
-        // If the element exists, update its content
-        taxElement.textContent = this.salesTaxDisplay;
     },
 
     onClickClear() {
