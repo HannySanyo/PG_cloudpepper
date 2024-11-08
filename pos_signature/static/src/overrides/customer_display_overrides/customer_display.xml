@@ -62,8 +62,10 @@
 
         <xpath expr="//div[@class='row fs-2 fw-bolder']" position="before">
             <div class="row fs-2">
-                <div class="col text-end">Tax </div>
-                <div class="col text-end"><t t-esc="salesTaxDisplayValue"/></div>
+                <div class="col text-end">Tax</div>
+                <div id="salesTaxDisplay" class="col text-end">
+                    <t t-esc="salesTaxDisplayValue"/>
+                </div>
             </div>
         </xpath>
 
