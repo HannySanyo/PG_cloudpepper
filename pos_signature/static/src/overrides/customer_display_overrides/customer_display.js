@@ -28,7 +28,9 @@ patch(CustomerDisplay.prototype, {
         };
 
         // Listen for page changes to trigger tax update on order screen load
-        this.env.bus.on("page:change", this, this.handlePageChange);  // Custom event listener
+        window.addEventListener("page:change", (event) => {
+            this.handlePageChange(event.detail.pageName);
+        });
     },
 
     // Handle page changes: load tax data if the order display is active
