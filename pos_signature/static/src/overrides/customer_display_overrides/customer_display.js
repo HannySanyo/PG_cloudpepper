@@ -13,18 +13,25 @@ patch(CustomerDisplay.prototype, {
         // Initialize the BroadcastChannel to receive updates
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         this.customerDisplayChannel.onmessage = (event) => {
+            console.log("Customer display received message:", event.data);  // Log received message
             const taxData = event.data;
             if (taxData && taxData.sales_tax !== undefined) {
                 this.salesTaxValue = taxData.sales_tax;
                 this.checkAndUpdateDisplay();
+            } else if (taxData.page === "order_display") {
+                console.log("Received instruction to transition to order display.");
+                this.loadOrderDisplay();
             }
         };
+    },
 
-        // Initialize sales tax value
-        this.salesTaxValue = 0;
-
-        // Listen for transition to the order screen
-        this.listenForOrderScreenTransition();
+    // Method to trigger the transition to the order display page
+    loadOrderDisplay() {
+        console.log("Transitioning to order display page.");
+        // Implement the actual logic for transitioning to the order page here
+        // Assuming there's a method or state change that triggers the page change
+        this.currentPage = "order_display";  // Update the page state to show order details
+        this.checkAndUpdateDisplay(); // Update the display values if necessary
     },
     
     listenForOrderScreenTransition() {

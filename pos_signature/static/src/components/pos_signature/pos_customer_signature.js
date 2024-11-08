@@ -21,6 +21,22 @@ patch(PosOrder.prototype, {
         } catch (error) {
             console.error("BroadcastChannel initialization failed:", error);
         }
+
+        // Call the display transition on setup if needed
+        this.triggerOrderDisplayTransition();
+    },
+    
+    // Function to trigger the transition to the order screen
+    triggerOrderDisplayTransition() {
+        console.log("Triggering order display transition.");
+        if (this.customerDisplayChannel) {
+            this.customerDisplayChannel.postMessage({
+                page: "order_display",
+                sales_tax: this.previousTaxValue || 0  // Include tax if needed
+            });
+        } else {
+            console.warn("Customer display channel is unavailable for transition.");
+        }
     },
 
     // Update localStorage only when there is a tax change
@@ -47,10 +63,9 @@ patch(PosOrder.prototype, {
         }
     },
 
-    // Call getCustomerDisplayData to update tax data
+    // Method to get and send updated customer display data, called when necessary
     getCustomerDisplayData() {
-        // Use direct data access instead of `this._super()`
-        const data = {}; // Obtain or construct relevant data directly
+        const data = {}; // Replace with actual order data as needed
 
         // Get current tax amount
         const currentTax = this.get_total_tax ? this.get_total_tax() : 0;
