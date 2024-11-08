@@ -9,27 +9,14 @@ import { getOnNotified } from "@point_of_sale/utils";
 
 // Patch PosOrder to handle tax data updates in local storage
 patch(PosOrder.prototype, {
-    
     setup() {
         super.setup(...arguments);
-        // Directly initialize event listeners without `this.pos`
-        this.initializeOrderListener();
-    },
-
-    initializeOrderListener() {
-        // Poll until `get_total_tax` is available, then start broadcasting
-        const orderListenerInterval = setInterval(() => {
-            if (typeof this.get_total_tax === 'function') {
-                this.updateLocalStorageWithTax();
-                clearInterval(orderListenerInterval); // Stop interval once function is available
-            } else {
-                console.warn("Waiting for `get_total_tax` to be available on PosOrder.");
-            }
-        }, 500);
+        console.log("Setting up PosOrder with tax updates.");
+        this.updateLocalStorageWithTax();
     },
 
     updateLocalStorageWithTax() {
-        const tax = this.get_total_tax() || 0;
+        const tax = this.get_total_tax ? this.get_total_tax() : 0;
         const data = { tax, timestamp: new Date().toISOString() };
 
         console.log("Updating localStorage with tax data:", data);
@@ -72,10 +59,11 @@ patch(PaymentScreen.prototype, {
         super.setup(...arguments);
         console.log("Setting up PaymentScreen.");
 
-        const customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        // Initialize BroadcastChannel only once
+        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
         // Listen for messages related to signature updates
-        customerDisplayChannel.onmessage = (event) => {
+        this.customerDisplayChannel.onmessage = (event) => {
             console.log("Received customer display message:", event.data);
             const order = this.env.pos.get_order();
             if (order && event.data.signature) {
@@ -83,28 +71,23 @@ patch(PaymentScreen.prototype, {
             }
         };
 
-        // Broadcast sales tax when `get_total_tax` is available on current order
-        this.broadcastOrderUpdates();
+        // Trigger broadcast when order tax data updates
+        this.env.pos.on('change:selectedOrder', this.broadcastOrderUpdates.bind(this));
     },
 
     broadcastOrderUpdates() {
         const order = this.env.pos.get_order();
+        if (order && typeof order.get_total_tax === 'function') {
+            const tax = order.get_total_tax();
 
-        // Ensure function availability without directly using `this.pos`
-        const taxListenerInterval = setInterval(() => {
-            if (order && typeof order.get_total_tax === 'function') {
-                const tax = order.get_total_tax();
-                const customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-
-                console.log("Broadcasting sales tax for order:", tax);
-                customerDisplayChannel.postMessage({
-                    new_order_id: order.id,
-                    sales_tax: tax,
-                });
-
-                clearInterval(taxListenerInterval); // Stop interval once broadcast is successful
-            }
-        }, 500);
+            console.log("Broadcasting sales tax for order:", tax);
+            this.customerDisplayChannel.postMessage({
+                new_order_id: order.id,
+                sales_tax: tax,
+            });
+        } else {
+            console.warn("Order or `get_total_tax` not available for broadcasting.");
+        }
     },
 
     async add_signature(event) {

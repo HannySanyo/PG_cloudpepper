@@ -29,10 +29,11 @@ class PosCustomerDisplayController(http.Controller):
                 pos_config_sudo.update_customer_signature(signature, access_token)
                 return {'success': True, 'message': 'Signature updated successfully'}
             else:
+                _logger.warning("POS config not found for access token: %s", access_token)
                 return {'success': False, 'message': 'POS config not found for given access token'}
         except Exception as e:
             _logger.error("Error processing order: %s", e)
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': 'Unexpected error occurred while processing order.'}
 
     @http.route('/pos/get_sales_tax', type='json', auth='user', methods=['POST'])
     def get_sales_tax(self, id=None):
@@ -42,7 +43,7 @@ class PosCustomerDisplayController(http.Controller):
         :return: JSON response with 'sales_tax' amount or an error message.
         """
         _logger.info("Fetching sales tax for order ID: %s", id)
-        
+
         if not id:
             _logger.warning("Order ID not provided for sales tax retrieval.")
             return {'error': 'Order ID not provided'}
@@ -50,7 +51,6 @@ class PosCustomerDisplayController(http.Controller):
         try:
             order = self._get_order_by_id(id)
             if not order:
-                _logger.warning("Order not found with ID: %s", id)
                 return {'error': 'Order not found'}
 
             sales_tax = order.amount_tax
@@ -58,7 +58,7 @@ class PosCustomerDisplayController(http.Controller):
             return {'sales_tax': sales_tax}
         except Exception as e:
             _logger.error("Error fetching sales tax for order ID %s: %s", id, e)
-            return {'error': str(e)}
+            return {'error': 'An error occurred while fetching sales tax.'}
 
     @http.route('/pos/get_order_id', type='json', auth='user', methods=['POST'])
     def get_order_id(self, amount=None):
@@ -68,7 +68,7 @@ class PosCustomerDisplayController(http.Controller):
         :return: JSON response with the 'id' of the matching order or an error message.
         """
         _logger.info("Fetching order ID for amount: %s", amount)
-        
+
         if amount is None:
             _logger.warning("Amount not provided for order ID retrieval.")
             return {'error': 'Amount not provided'}
@@ -83,7 +83,7 @@ class PosCustomerDisplayController(http.Controller):
             return {'id': order.id}
         except Exception as e:
             _logger.error("Error fetching order ID for amount %s: %s", amount, e)
-            return {'error': str(e)}
+            return {'error': 'An error occurred while fetching the order ID.'}
 
     def _get_order_by_id(self, order_id):
         """
@@ -95,6 +95,8 @@ class PosCustomerDisplayController(http.Controller):
             order = request.env['pos.order'].sudo().search([('id', '=', int(order_id))], limit=1)
             if order:
                 _logger.info("Order retrieved successfully for ID: %s", order_id)
+            else:
+                _logger.warning("Order with ID %s not found.", order_id)
             return order
         except Exception as e:
             _logger.error("Error retrieving order with ID %s: %s", order_id, e)

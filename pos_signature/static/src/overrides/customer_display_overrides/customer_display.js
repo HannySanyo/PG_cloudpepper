@@ -5,26 +5,33 @@ import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
 
 patch(CustomerDisplay.prototype, {
-    etup() {
+    setup() {
         super.setup(...arguments);
 
-        console.log("Setting up CustomerDisplay instance with localStorage polling...");
+        console.log("Setting up CustomerDisplay instance with BroadcastChannel...");
         this.salesTaxDisplay = '0.00';
-        this.pollLocalStorageForTax();
+
+        // Initialize the BroadcastChannel for real-time updates
+        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        this.setupBroadcastChannelListener();
     },
 
-    pollLocalStorageForTax() {
-        setInterval(() => {
-            const taxData = JSON.parse(localStorage.getItem('customerDisplayTaxData') || '{}');
-            if (taxData && taxData.tax !== undefined) {
-                this.updateDisplayValues(taxData.tax);
+    // Set up the BroadcastChannel listener for receiving tax updates
+    setupBroadcastChannelListener() {
+        this.customerDisplayChannel.onmessage = (event) => {
+            console.log("Received message on customer display:", event.data);
+            const { tax } = event.data;
+            if (tax !== undefined) {
+                this.updateDisplayValues(tax);
+            } else {
+                console.warn("Tax value missing in received message:", event.data);
             }
-        }, 1000);  // Poll every 1 second
+        };
     },
 
     updateDisplayValues(tax) {
         const taxElement = document.querySelector("#salesTaxDisplay");
-    
+
         if (taxElement) {
             taxElement.textContent = tax.toFixed(2);
             console.log("Updated Sales Tax on Customer Display:", tax);
@@ -44,11 +51,9 @@ patch(CustomerDisplay.prototype, {
             if (!this.currentOrderId) {
                 console.warn("No currentOrderId found. Setting a test ID for debugging.");
                 this.currentOrderId = 16;  // Use a known order ID for testing
-                
-                // Optionally, fetch the ID dynamically if you have a way to retrieve the active order ID here
             }
     
-            // Now attempt to load and render sales tax with the current or test Order ID
+            // Attempt to load and render sales tax with the current or test Order ID
             if (this.currentOrderId) {
                 await this.loadSalesTax(this.currentOrderId);
                 this.renderSalesTax();
@@ -59,7 +64,7 @@ patch(CustomerDisplay.prototype, {
     async handleOrderChange(newOrderId) {
         console.log("Handling order change. New Order ID:", newOrderId, "Current Order ID:", this.currentOrderId);
         
-        // Forcefully update the tax, even if the order ID is the same
+        // Update the tax, even if the order ID is the same
         this.currentOrderId = newOrderId;
         console.log("Updated currentOrderId to:", this.currentOrderId);
         await this.loadSalesTax(newOrderId);
