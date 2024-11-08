@@ -7,25 +7,25 @@ import { useService } from "@web/core/utils/hooks";
 patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
-
+        
         this.signature = '';
         this.salesTaxDisplay = '0.00';
-        this.currentOrderId = null;  // Track the current order ID
-        this.orm = useService("orm");
-        this.my_canvas = useRef('my_canvas');
-        window.signature = this.signature;
-
+        this.currentOrderId = null;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+    
+        // Listener to handle order changes
         this.customerDisplayChannel.onmessage = (event) => {
-            // Listen for updates when a new order is opened or the order changes
             if (event.data && event.data.new_order_id) {
                 this.handleOrderChange(event.data.new_order_id);
             }
         };
-
+    
+        // Render sales tax only once the DOM is fully loaded
+        document.addEventListener("DOMContentLoaded", () => {
+            this.renderSalesTax();
+        });
+    
         this.drawing = false;
-        
-        // Check and fetch tax for the current order at setup
         this.checkOrderAndFetchTax();
     },
 
