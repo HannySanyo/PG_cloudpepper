@@ -11,33 +11,28 @@ import { getOnNotified } from "@point_of_sale/utils";
 patch(PosOrder.prototype, {
     setup() {
         super.setup(...arguments);
-        console.log("Setting up PosOrder with tax updates.");
-
-        // Defer the setup until POS is ready
-        this.env.bus.on('pos_ready', this, this.initializeTaxUpdate);
-    },
-
-    initializeTaxUpdate() {
-        console.log("POS environment confirmed ready; initializing tax updates.");
-
-        // Initial call to set the tax on startup
+        console.log("Setting up PosOrder with direct tax updates.");
+        
+        // Initial tax update on setup
         this.updateLocalStorageWithTax();
     },
 
-    // Update localStorage with the latest tax data
+    // Function to update tax data in localStorage
     updateLocalStorageWithTax() {
-        const order = this.get_order();
-        if (order && typeof order.get_total_tax === 'function') {
+        // Use safe access to ensure no reliance on `this.env`
+        if (typeof this.get_total_tax === 'function') {
             const taxData = { 
-                sales_tax: order.get_total_tax() || 0,
+                sales_tax: this.get_total_tax() || 0,
                 timestamp: new Date().toISOString()
             };
             localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
             console.log("Updated localStorage with tax data:", taxData);
+        } else {
+            console.warn("get_total_tax function not available for tax update.");
         }
     },
 
-    // Trigger updates when lines are added or removed
+    // Trigger localStorage updates on line add/remove
     add_line(line) {
         this._super(line);
         this.updateLocalStorageWithTax();
