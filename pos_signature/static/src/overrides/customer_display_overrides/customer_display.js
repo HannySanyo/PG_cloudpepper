@@ -10,9 +10,9 @@ patch(CustomerDisplay.prototype, {
 
         console.log("Setting up CustomerDisplay instance with BroadcastChannel...");
         this.salesTaxDisplay = '0.00';
-
-        // Initialize the BroadcastChannel for real-time updates
-        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        
+        // Initialize polling for localStorage tax data
+        this.pollLocalStorageForTax();
     },
 
     pollLocalStorageForTax() {
@@ -20,13 +20,15 @@ patch(CustomerDisplay.prototype, {
             const taxData = JSON.parse(localStorage.getItem('customerDisplayTaxData') || '{}');
             if (taxData && taxData.sales_tax !== undefined) {
                 this.updateDisplayValues(taxData.sales_tax);
+            } else {
+                console.warn("No tax data found in localStorage or sales_tax undefined.");
             }
         }, 1000);  // Poll every 1 second
     },
-    
-    // Method to update the tax on the customer display:
+
     updateDisplayValues(tax) {
         const taxElement = document.querySelector("#salesTaxDisplay");
+
         if (taxElement) {
             taxElement.textContent = tax.toFixed(2);
             console.log("Updated Sales Tax on Customer Display:", tax);
