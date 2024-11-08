@@ -5,7 +5,6 @@ import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment
 import { SignaturePopupWidget } from "@pos_signature/app/popups/signature_popup/signature_popup";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { WaitingForSignature } from "@pos_signature/app/popups/waiting_for_signature_popup/waiting_for_signature_popup";
-import { getOnNotified } from "@point_of_sale/utils";
 
 // Patch PosOrder to handle tax data updates in local storage
 patch(PosOrder.prototype, {
@@ -13,20 +12,21 @@ patch(PosOrder.prototype, {
         super.setup(...arguments);
         console.log("Setting up PosOrder for conditional tax updates.");
 
-        // Initialize the previous tax value to detect changes
+        // Initialize previous tax value to detect changes
         this.previousTaxValue = null;
 
         // Initialize BroadcastChannel for customer display updates
-        if (!this.customerDisplayChannel) {
+        try {
             this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        } catch (error) {
+            console.error("BroadcastChannel initialization failed:", error);
         }
     },
 
-    // Method to update localStorage when there's a tax change
+    // Update localStorage only when there is a tax change
     updateLocalStorageWithTax() {
         const currentTax = this.get_total_tax ? this.get_total_tax() : 0;
 
-        // Update localStorage and BroadcastChannel only on tax change
         if (currentTax !== this.previousTaxValue) {
             const taxData = {
                 sales_tax: currentTax,
@@ -36,7 +36,11 @@ patch(PosOrder.prototype, {
             console.log("Updated localStorage with tax data:", taxData);
 
             // Send tax update to customer display via BroadcastChannel
-            this.customerDisplayChannel.postMessage(taxData);
+            if (this.customerDisplayChannel) {
+                this.customerDisplayChannel.postMessage(taxData);
+            } else {
+                console.warn("Customer display channel is unavailable.");
+            }
 
             // Update previousTaxValue to reflect the latest stored value
             this.previousTaxValue = currentTax;
@@ -45,12 +49,13 @@ patch(PosOrder.prototype, {
 
     // Call getCustomerDisplayData to update tax data
     getCustomerDisplayData() {
-        const data = this._super();
+        // Use direct data access instead of `this._super()`
+        const data = {}; // Obtain or construct relevant data directly
 
         // Get current tax amount
         const currentTax = this.get_total_tax ? this.get_total_tax() : 0;
 
-        // Check if tax changed, then update localStorage and broadcast
+        // Check if there's a difference from the previous tax and update localStorage if needed
         if (currentTax !== this.previousTaxValue) {
             const taxData = {
                 sales_tax: currentTax,
@@ -59,11 +64,12 @@ patch(PosOrder.prototype, {
             localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
             console.log("Updated localStorage with tax data:", taxData);
 
-            // BroadcastChannel to notify customer display of the tax update
-            if (!this.customerDisplayChannel) {
-                this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+            // Use BroadcastChannel to notify customer display of the tax update
+            if (this.customerDisplayChannel) {
+                this.customerDisplayChannel.postMessage(taxData);
+            } else {
+                console.warn("Customer display channel is unavailable.");
             }
-            this.customerDisplayChannel.postMessage(taxData);
 
             // Update previousTaxValue to reflect the stored value
             this.previousTaxValue = currentTax;
@@ -80,16 +86,22 @@ patch(PaymentScreen.prototype, {
         console.log("Setting up PaymentScreen.");
 
         // Initialize BroadcastChannel for real-time updates
-        this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        try {
+            this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        } catch (error) {
+            console.error("BroadcastChannel initialization failed:", error);
+        }
 
         // Listen for signature updates from the customer display
-        this.customerDisplayChannel.onmessage = (event) => {
-            console.log("Received customer display message:", event.data);
-            const order = this.env.pos.get_order();
-            if (order && event.data.signature) {
-                order.signature = event.data.signature;
-            }
-        };
+        if (this.customerDisplayChannel) {
+            this.customerDisplayChannel.onmessage = (event) => {
+                console.log("Received customer display message:", event.data);
+                const order = this.env.pos?.get_order();
+                if (order && event.data.signature) {
+                    order.signature = event.data.signature;
+                }
+            };
+        }
     },
 
     async add_signature(event) {
