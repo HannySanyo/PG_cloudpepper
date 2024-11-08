@@ -13,26 +13,27 @@ patch(PosOrder.prototype, {
         super.setup(...arguments);
         console.log("Setting up PosOrder with direct tax updates.");
         
-        // Initial tax update on setup
+        // Update tax in localStorage initially
         this.updateLocalStorageWithTax();
+
+        // Set an interval to periodically update tax in case events miss an update
+        setInterval(() => {
+            this.updateLocalStorageWithTax();
+        }, 2000); // Check every 2 seconds
     },
 
     // Function to update tax data in localStorage
     updateLocalStorageWithTax() {
-        // Use safe access to ensure no reliance on `this.env`
-        if (typeof this.get_total_tax === 'function') {
-            const taxData = { 
-                sales_tax: this.get_total_tax() || 0,
-                timestamp: new Date().toISOString()
-            };
-            localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
-            console.log("Updated localStorage with tax data:", taxData);
-        } else {
-            console.warn("get_total_tax function not available for tax update.");
-        }
+        const tax = this.get_total_tax ? this.get_total_tax() : 0;
+        const taxData = {
+            sales_tax: tax,
+            timestamp: new Date().toISOString(),
+        };
+        localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
+        console.log("Updated localStorage with tax data:", taxData);
     },
 
-    // Trigger localStorage updates on line add/remove
+    // Override methods that modify the order to ensure localStorage is updated
     add_line(line) {
         this._super(line);
         this.updateLocalStorageWithTax();
@@ -40,6 +41,11 @@ patch(PosOrder.prototype, {
 
     remove_line(line) {
         this._super(line);
+        this.updateLocalStorageWithTax();
+    },
+
+    set_discount(line, discount) {
+        this._super(line, discount);
         this.updateLocalStorageWithTax();
     },
 
