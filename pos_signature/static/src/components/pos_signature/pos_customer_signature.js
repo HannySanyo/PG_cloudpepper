@@ -16,7 +16,6 @@ patch(PosOrder.prototype, {
         const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
         if (this.pos) {
-            // Listen for changes to the selected order
             this.pos.on('change:selectedOrder', (newOrder) => {
                 if (newOrder) {
                     this._broadcastOrderUpdates(newOrder);
@@ -40,17 +39,19 @@ patch(PosOrder.prototype, {
     _broadcastOrderUpdates(order) {
         const total = order.get_total_with_tax();
         const tax = order.get_total_tax();
-        const amount = order.get_total_with_tax();  // Example additional field
+        const amount = order.get_total_with_tax();
 
-        // Ensure values are valid before broadcasting
+        // Additional logging to verify total and tax values
+        console.log("Preparing broadcast. Calculated Total:", total, "Calculated Tax:", tax);
+
         if (typeof total === 'number' && typeof tax === 'number') {
             const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
             displayChannel.postMessage({
                 total: total,
                 tax: tax,
                 amount: amount,
-                finalized: order.is_finalized,  // Example status
-                lines: order.get_orderlines().map(line => line.export_as_JSON()) // Exported order lines if needed
+                finalized: order.is_finalized,
+                lines: order.get_orderlines().map(line => line.export_as_JSON())
             });
             console.log("Broadcasting order update. Total:", total, "Tax:", tax, "Amount:", amount);
         } else {
