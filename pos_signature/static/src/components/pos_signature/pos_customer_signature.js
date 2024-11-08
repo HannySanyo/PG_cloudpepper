@@ -38,11 +38,13 @@ patch(PosOrder.prototype, {
     
     _broadcastOrderUpdates(order) {
         const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-        
-        const message = { tax: 100.00 };  // Hardcoded test message with simple structure
-        console.log("Broadcasting Message:", message); // Log the message structure for verification
     
-        displayChannel.postMessage(message);  // Send the message through the channel
+        // Ensure only tax data is being sent
+        const tax = 100.00;  // Replace with `order.get_total_tax()` in actual implementation
+        const message = { tax: tax }; // Explicitly set only the tax property
+    
+        console.log("Broadcasting Message:", message); // Verify structure in console
+        displayChannel.postMessage(message); // Send message with tax only
     },
 
     // Method to export additional data for printing
