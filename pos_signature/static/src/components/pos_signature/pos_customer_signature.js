@@ -39,21 +39,20 @@ patch(PosOrder.prototype, {
     _broadcastOrderUpdates(order) {
         const total = order.get_total_with_tax();
         const tax = order.get_total_tax();
-        const amount = order.get_total_with_tax();
 
-        // Additional logging to verify total and tax values
-        console.log("Preparing broadcast. Calculated Total:", total, "Calculated Tax:", tax);
+        // Log values to confirm correct capture
+        console.log("Broadcasting order update - Calculated Total:", total, "Calculated Tax:", tax);
 
         if (typeof total === 'number' && typeof tax === 'number') {
             const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
             displayChannel.postMessage({
-                total: total,
-                tax: tax,
-                amount: amount,
+                total: total,           // Explicitly set total
+                tax: tax,               // Explicitly set tax
+                amount: order.get_total_with_tax(),  // Keeping amount for testing purposes
                 finalized: order.is_finalized,
                 lines: order.get_orderlines().map(line => line.export_as_JSON())
             });
-            console.log("Broadcasting order update. Total:", total, "Tax:", tax, "Amount:", amount);
+            console.log("Broadcast message sent with Total:", total, "and Tax:", tax);
         } else {
             console.warn("Total or tax is not a valid number:", total, tax);
         }
