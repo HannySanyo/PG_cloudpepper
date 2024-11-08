@@ -11,7 +11,7 @@ import { getOnNotified } from "@point_of_sale/utils";
 patch(PosOrder.prototype, {
 
     setup() {
-        super.setup(...arguments);
+        super.setup(...arguments); 
     
         let attemptCount = 0;
         const maxAttempts = 10;
