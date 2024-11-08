@@ -11,23 +11,15 @@ import { getOnNotified } from "@point_of_sale/utils";
 patch(PosOrder.prototype, {
     
     setup(options) {
-        this.signature = options.signature || "";
-        this.waiting_for_signature = false;
-        this.terms_conditions_link = false;
         super.setup(...arguments, options);
 
-        // Broadcast channel for updating customer display
-        const customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Ensure this.pos exists before attempting to set up an event listener
         if (this.pos) {
-            // Broadcast order data whenever there's a change in the active order
+            // Listen for changes to the selected order
             this.pos.on('change:selectedOrder', (newOrder) => {
-                if (newOrder && typeof newOrder.get_total_tax === 'function') {  // Ensure get_total_tax exists
-                    customerDisplayChannel.postMessage({
-                        new_order_id: newOrder.id,
-                        sales_tax: newOrder.get_total_tax()
-                    });
+                if (newOrder) {
+                    this._broadcastOrderUpdates(newOrder);
                 }
             });
         } else {
@@ -37,24 +29,26 @@ patch(PosOrder.prototype, {
 
     add_line(line) {
         this._super(line);
-        this._broadcastOrderUpdates();
+        this._broadcastOrderUpdates(this);
     },
 
     remove_line(line) {
         this._super(line);
-        this._broadcastOrderUpdates();
+        this._broadcastOrderUpdates(this);
     },
 
-    _broadcastOrderUpdates() {
-        const total = this.get_total_with_tax();
-        const tax = this.get_total_tax();
+    _broadcastOrderUpdates(order) {
+        const total = order.get_total_with_tax();
+        const tax = order.get_total_tax();
 
+        // Ensure values are valid before broadcasting
         if (typeof total === 'number' && typeof tax === 'number') {
             const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
             displayChannel.postMessage({
-                total: total,   // Ensure this key matches what CustomerDisplay expects
-                tax: tax        // Ensure this key matches what CustomerDisplay expects
+                total: total,
+                tax: tax,
             });
+            console.log("Broadcasting order update. Total:", total, "Tax:", tax);
         } else {
             console.warn("Total or tax is not a valid number:", total, tax);
         }
