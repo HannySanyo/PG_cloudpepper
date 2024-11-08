@@ -9,33 +9,24 @@ import { getOnNotified } from "@point_of_sale/utils";
 
 // Patch PosOrder to handle tax data updates in local storage
 patch(PosOrder.prototype, {
-    async setup() {
+    setup() {
         super.setup(...arguments);
         console.log("Setting up PosOrder with tax updates.");
 
-        await this.initializeWhenReady();
+        // Defer the setup until the POS order environment is fully ready
+        this.env.bus.on('pos_ready', this, this.initializeTaxUpdate);
     },
 
-    async initializeWhenReady() {
-        if (!this.env?.pos) {
-            console.warn("POS environment not fully initialized; retrying setup.");
-            // Delay until the POS environment is ready
-            setTimeout(() => this.initializeWhenReady(), 500);
-            return;
-        }
+    initializeTaxUpdate() {
+        console.log("POS environment confirmed ready; initializing tax updates.");
 
-        // Once initialized, proceed with setup
-        console.log("POS environment initialized; proceeding with setup.");
-        
-        // Initial tax update to localStorage
-        this.updateLocalStorageWithTax();
-
-        // Listen for changes to the selected order and update tax in localStorage
+        // Attach event listeners to update tax when order changes occur
         this.env.pos.on('change:selectedOrder', this.updateLocalStorageWithTax.bind(this));
+        this.updateLocalStorageWithTax(); // Initial call to set the tax on startup
     },
 
     updateLocalStorageWithTax() {
-        const order = this.env?.pos?.get_order();
+        const order = this.env.pos?.get_order();
         if (order && typeof order.get_total_tax === 'function') {
             const tax = order.get_total_tax() || 0;
             const data = { sales_tax: tax, timestamp: new Date().toISOString() };
