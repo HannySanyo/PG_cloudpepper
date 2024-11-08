@@ -10,11 +10,12 @@ patch(CustomerDisplay.prototype, {
 
         this.salesTaxDisplay = '0.00';
 
-        // Initialize the BroadcastChannel to receive updates
+        // Initialize BroadcastChannel for receiving updates
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         this.customerDisplayChannel.onmessage = (event) => {
-            console.log("Customer display received message:", event.data);  // Log received message
+            console.log("Customer display received message:", event.data);  // Log received message for debugging
             const taxData = event.data;
+            
             if (taxData && taxData.sales_tax !== undefined) {
                 this.salesTaxValue = taxData.sales_tax;
                 this.checkAndUpdateDisplay();
@@ -25,34 +26,27 @@ patch(CustomerDisplay.prototype, {
         };
     },
 
-    // Method to trigger the transition to the order display page
+    // Method to transition to the order display page
     loadOrderDisplay() {
-        console.log("Transitioning to order display page.");
-        // Implement the actual logic for transitioning to the order page here
-        // Assuming there's a method or state change that triggers the page change
-        this.currentPage = "order_display";  // Update the page state to show order details
-        this.checkAndUpdateDisplay(); // Update the display values if necessary
-    },
-    
-    listenForOrderScreenTransition() {
-        // This method listens for a message to trigger the transition to the order screen
-        this.customerDisplayChannel.onmessage = (event) => {
-            if (event.data.page === "order_display") {
-                console.log("Order display page activated on customer display.");
-                this.checkAndUpdateDisplay();
-            }
-        };
+        console.log("Transitioning to order display page...");
+        this.currentPage = "order_display";  // Change page state to order display
+        this.checkAndUpdateDisplay();         // Call update to refresh elements
     },
 
+    // Check and update the display if elements are available, retry if necessary
     checkAndUpdateDisplay() {
-        // Ensure the order screen and tax display element are ready
+        if (this.currentPage !== "order_display") {
+            console.log("checkAndUpdateDisplay: Not on order display page, aborting update.");
+            return;
+        }
+
         const taxElement = document.querySelector("#salesTaxDisplay");
         if (taxElement) {
             taxElement.textContent = this.salesTaxValue.toFixed(2);
             console.log("Updated Sales Tax on Customer Display:", this.salesTaxValue);
         } else {
             console.warn("Tax display element not found in DOM. Retrying...");
-            setTimeout(() => this.checkAndUpdateDisplay(), 500); // Retry after 500ms
+            setTimeout(() => this.checkAndUpdateDisplay(), 500); // Retry after delay if not found
         }
     },
 
