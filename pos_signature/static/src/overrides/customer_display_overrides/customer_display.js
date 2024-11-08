@@ -9,6 +9,7 @@ patch(CustomerDisplay.prototype, {
         super.setup(...arguments);
         
         // Debugging: Attach instance to window
+        console.log("Setting up CustomerDisplay instance...");
         window.customerDisplayInstance = this;
 
         this.signature = '';
@@ -21,38 +22,51 @@ patch(CustomerDisplay.prototype, {
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         
         // Listen for navigation to the order display screen
+        console.log("Setting up BroadcastChannel listener...");
         this.customerDisplayChannel.onmessage = (event) => {
             if (event.data && event.data.new_order_id) {
+                console.log("Received new order ID through BroadcastChannel:", event.data.new_order_id);
                 this.handleOrderChange(event.data.new_order_id);
             }
         };
 
         // Listen for page changes to trigger tax update on order screen load
+        console.log("Setting up page:change event listener...");
         window.addEventListener("page:change", (event) => {
+            console.log("Page change detected:", event.detail.pageName);
             this.handlePageChange(event.detail.pageName);
         });
     },
 
     // Handle page changes: load tax data if the order display is active
     async handlePageChange(pageName) {
-        if (pageName === "order_display") {  // Make sure this matches your order display page ID/name
+        console.log("Handling page change to:", pageName);
+        if (pageName === "order_display") {
             console.log("Order display page loaded. Loading tax data...");
             if (this.currentOrderId) {
+                console.log("Current Order ID:", this.currentOrderId);
                 await this.loadSalesTax(this.currentOrderId);
                 this.renderSalesTax();
+            } else {
+                console.warn("No currentOrderId found when loading order display page.");
             }
         }
     },
 
     async handleOrderChange(newOrderId) {
+        console.log("Handling order change. New Order ID:", newOrderId, "Current Order ID:", this.currentOrderId);
         if (this.currentOrderId !== newOrderId) {
             this.currentOrderId = newOrderId;
+            console.log("Updated currentOrderId to:", this.currentOrderId);
             await this.loadSalesTax(newOrderId);
             this.renderSalesTax();
+        } else {
+            console.log("Order ID has not changed. No action taken.");
         }
     },
 
     async loadSalesTax(orderId) {
+        console.log("Loading sales tax for order ID:", orderId);
         try {
             const response = await fetch('/pos/get_sales_tax', {
                 method: 'POST',
@@ -68,9 +82,11 @@ patch(CustomerDisplay.prototype, {
                 })
             });
             const orderData = await response.json();
+            console.log("Received sales tax data from server:", orderData);
 
             if (orderData.result && orderData.result.sales_tax !== undefined) {
                 this.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
+                console.log("Updated salesTaxDisplay to:", this.salesTaxDisplay);
                 this.renderSalesTax();
             } else {
                 console.error("loadSalesTax: Sales tax not found in response:", orderData);
@@ -81,9 +97,11 @@ patch(CustomerDisplay.prototype, {
     },
 
     renderSalesTax() {
+        console.log("Attempting to render sales tax. Current salesTaxDisplay value:", this.salesTaxDisplay);
         const taxElement = document.querySelector("#salesTaxDisplay");
         if (taxElement) {
             taxElement.textContent = this.salesTaxDisplay;
+            console.log("Sales tax successfully rendered to DOM. Updated textContent:", taxElement.textContent);
         } else {
             console.warn("Tax display element not found in DOM. Retrying...");
             setTimeout(() => this.renderSalesTax(), 500);  // Retry after delay
@@ -91,6 +109,7 @@ patch(CustomerDisplay.prototype, {
     },
 
     onClickClear() {
+        console.log("Clearing signature on canvas.");
         if (this.ctx) {
             this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
         }
@@ -98,6 +117,7 @@ patch(CustomerDisplay.prototype, {
     },
 
     async sendSignatureData(signature) {
+        console.log("Sending signature data:", signature);
         if (this.session.type === "local") {
             this.customerDisplayChannel.postMessage({ test: 'test', signature: signature });
         }
@@ -113,10 +133,12 @@ patch(CustomerDisplay.prototype, {
     },
 
     get salesTaxDisplayValue() {
+        console.log("Accessing salesTaxDisplayValue. Current value:", this.salesTaxDisplay);
         return this.salesTaxDisplay || '0.00';
     },
 
     onSubmitSignature() {
+        console.log("Submitting signature.");
         this.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
     }
 });
