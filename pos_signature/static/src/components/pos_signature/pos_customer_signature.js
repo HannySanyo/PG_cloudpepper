@@ -11,6 +11,7 @@ import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { WaitingForSignature } from "@pos_signature/app/popups/waiting_for_signature_popup/waiting_for_signature_popup";
 import { getOnNotified } from "@point_of_sale/utils";
 
+// Patch for PosOrder to ensure that customer display data includes signature and other needed information
 patch(PosOrder.prototype, {
     setup(options) {
         this.signature = options.signature || "";
@@ -20,76 +21,89 @@ patch(PosOrder.prototype, {
         this.mouse = { x: 0, y: 0 };
         this.canvas;
         this.ctx;
-        super.setup(...arguments,options);
+        super.setup(...arguments, options);
     },
 
     export_for_printing(baseUrl, headerData) {
-        return{
+        return {
             ...super.export_for_printing(...arguments),
             signature: this.signature,
         }
     },
 
-    getCustomerDisplayData(){
+    getCustomerDisplayData() {
         var res = {
             ...super.getCustomerDisplayData(),
-            signature: this.signature||"",
+            signature: this.signature || "",
             waiting_for_signature: this.waiting_for_signature || false,
             terms_conditions_link: this.config_id.terms_conditions_link || false,
-        }
-        return res
+        };
+        console.log("Customer Display Data:", res);  // Log the data being sent
+        return res;
     }
-})
+});
 
-
+// Patch for PaymentScreen to manage setup, signature addition, and order validation
 patch(PaymentScreen.prototype, {
-
-    setup(){
-        super.setup(...arguments);        
+    setup() {
+        super.setup(...arguments);
         const currentOrder = this.pos.get_order();
+        console.log("Setting up PaymentScreen with current order:", currentOrder);
+
+        // Setup BroadcastChannel for local display type
         if (this.pos.config.customer_display_type === "local") {
-            new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY").onmessage = (event) => {
-                if(event.data.signature){
+            const channel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+            channel.onmessage = (event) => {
+                console.log("Received message on local display:", event.data);
+                if (event.data.signature) {
                     currentOrder.signature = event.data.signature;
+                    console.log("Updated order signature from customer display:", currentOrder.signature);
                 }
             };
         }
-        
+
+        // Setup notification handler for remote display type
         if (this.pos.config.customer_display_type === "remote") {
             this.onNotified = getOnNotified(this.pos.bus, this.pos.config.access_token);
-            this.onNotified("UPDATE_CUSTOMER_SIGNATURE",(signature)=>{
+            this.onNotified("UPDATE_CUSTOMER_SIGNATURE", (signature) => {
                 currentOrder.signature = signature;
-            })
+                console.log("Updated order signature from remote customer display:", currentOrder.signature);
+            });
         }
     },
 
     async add_signature(event) {
-        const CurrentOrder = this.pos.get_order();
-        
-        if(this.pos.config.add_signature_from === 'cutomer_display' && ['local','remote'].includes(this.pos.config.customer_display_type)){
-            if(this.currentOrder.signature=='')
-                CurrentOrder.waiting_for_signature = true;
-            this.dialog.add(WaitingForSignature, {})
-        }
-        else{
-            this.dialog.add(SignaturePopupWidget, {})
+        const currentOrder = this.pos.get_order();
+        console.log("Adding signature, current order state:", currentOrder);
+
+        if (this.pos.config.add_signature_from === 'customer_display' && ['local', 'remote'].includes(this.pos.config.customer_display_type)) {
+            if (currentOrder.signature === '') {
+                currentOrder.waiting_for_signature = true;
+                console.log("Waiting for signature from customer display.");
+            }
+            this.dialog.add(WaitingForSignature, {});
+        } else {
+            this.dialog.add(SignaturePopupWidget, {});
         }
     },
 
     async validateOrder(isForceValidate) {
+        const currentOrder = this.pos.get_order();
+        console.log("Validating order. Signature status:", currentOrder.signature);
+
         if (this.pos.config.enable_pos_signature && this.pos.config.set_signature_mandatory) {
-            if (this.pos.get_order().signature === '') {
-                this.pos.get_order().signature = '';
-                this.pos.get_order().canvas = '';
-                this.pos.get_order().ctx = '';
-                this.pos.get_order().mouse = { x: 0, y: 0 };
+            if (currentOrder.signature === '') {
+                console.warn("Signature required but missing.");
+                currentOrder.signature = '';
+                currentOrder.canvas = '';
+                currentOrder.ctx = '';
+                currentOrder.mouse = { x: 0, y: 0 };
                 this.env.services.dialog.add(AlertDialog, {
                     title: _t("Signature Required.."),
-                    body: _t(
-                        "Please Add Signature"
-                    ),
+                    body: _t("Please Add Signature"),
                 });
             } else {
+                console.log("Order has signature. Proceeding with validation.");
                 super.validateOrder(...arguments);
             }
         } else {
@@ -97,5 +111,3 @@ patch(PaymentScreen.prototype, {
         }
     }
 });
-
-
