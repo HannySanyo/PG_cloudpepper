@@ -12,16 +12,23 @@ patch(PosOrder.prototype, {
     setup() {
         super.setup(...arguments);
         console.log("Setting up PosOrder with tax updates.");
-        
-        // Update localStorage on setup and listen for order changes
-        this.updateLocalStorageWithTax();
 
-        // Listen for changes to the selected order and update tax in localStorage
-        this.env.pos.on('change:selectedOrder', this.updateLocalStorageWithTax.bind(this));
+        // Check if env and pos are available before proceeding
+        if (this.env && this.env.pos) {
+            // Update localStorage on setup
+            this.updateLocalStorageWithTax();
+
+            // Listen for changes to the selected order and update tax in localStorage
+            this.env.pos.on('change:selectedOrder', this.updateLocalStorageWithTax.bind(this));
+        } else {
+            console.warn("POS environment not fully initialized; retrying setup.");
+            // Retry after a brief delay if POS environment is not ready
+            setTimeout(() => this.setup(), 500);
+        }
     },
 
     updateLocalStorageWithTax() {
-        const order = this.env.pos.get_order();
+        const order = this.env?.pos?.get_order();
         if (order && typeof order.get_total_tax === 'function') {
             const tax = order.get_total_tax() || 0;
             const data = { sales_tax: tax, timestamp: new Date().toISOString() };
