@@ -37,15 +37,19 @@ patch(PosOrder.prototype, {
     },
     
     _broadcastOrderUpdates(order) {
-        const tax = order.get_total_tax(); // Retrieve the total tax using the correct method
+        // Verify that get_total_tax is a valid function on the order object
+        if (typeof order.get_total_tax === 'function') {
+            const tax = order.get_total_tax(); // Call the tax calculation function
+            console.log("Calculated Tax:", tax); // Log the calculated tax to confirm its value
     
-        console.log("Calculated Tax:", tax); // Log to verify the tax calculation
-    
-        const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-    
-        displayChannel.postMessage({ tax });
-        console.log("Broadcast message sent with Tax:", { tax });
-    }, 
+            // Proceed to broadcast the tax if it's valid
+            const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+            displayChannel.postMessage({ tax });
+            console.log("Broadcast message sent with Tax:", { tax });
+        } else {
+            console.warn("get_total_tax method is missing on the order object.");
+        }
+    },
 
     // Method to export additional data for printing
     export_for_printing(baseUrl, headerData) {
