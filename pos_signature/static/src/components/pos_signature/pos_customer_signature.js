@@ -3,14 +3,14 @@ import { _t } from "@web/core/l10n/translation";
 import { patch } from "@web/core/utils/patch";
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 import { SignaturePopupWidget } from "@pos_signature/app/popups/signature_popup/signature_popup";
-import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
+import { AlertDialog } from "@web/core/confirmatzion_dialog/confirmation_dialog";
 import { WaitingForSignature } from "@pos_signature/app/popups/waiting_for_signature_popup/waiting_for_signature_popup";
 import { getOnNotified } from "@point_of_sale/utils";
 
 // Patch PosOrder to listen for order changes and broadcast updated data
 patch(PosOrder.prototype, {
 
-    etup() {
+    setup() {
         super.setup(...arguments);
 
         // Initialize order event listener without using `this.pos`
