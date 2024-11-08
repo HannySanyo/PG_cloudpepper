@@ -8,7 +8,6 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
         
-        // Debugging: Attach instance to window
         console.log("Setting up CustomerDisplay instance...");
         window.customerDisplayInstance = this;
 
@@ -21,7 +20,6 @@ patch(CustomerDisplay.prototype, {
 
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         
-        // Listen for navigation to the order display screen
         console.log("Setting up BroadcastChannel listener...");
         this.customerDisplayChannel.onmessage = (event) => {
             if (event.data && event.data.new_order_id) {
@@ -30,7 +28,6 @@ patch(CustomerDisplay.prototype, {
             }
         };
 
-        // Listen for page changes to trigger tax update on order screen load
         console.log("Setting up page:change event listener...");
         window.addEventListener("page:change", (event) => {
             console.log("Page change detected:", event.detail.pageName);
@@ -55,14 +52,12 @@ patch(CustomerDisplay.prototype, {
 
     async handleOrderChange(newOrderId) {
         console.log("Handling order change. New Order ID:", newOrderId, "Current Order ID:", this.currentOrderId);
-        if (this.currentOrderId !== newOrderId) {
-            this.currentOrderId = newOrderId;
-            console.log("Updated currentOrderId to:", this.currentOrderId);
-            await this.loadSalesTax(newOrderId);
-            this.renderSalesTax();
-        } else {
-            console.log("Order ID has not changed. No action taken.");
-        }
+        
+        // Forcefully update the tax, even if the order ID is the same
+        this.currentOrderId = newOrderId;
+        console.log("Updated currentOrderId to:", this.currentOrderId);
+        await this.loadSalesTax(newOrderId);
+        this.renderSalesTax();
     },
 
     async loadSalesTax(orderId) {
