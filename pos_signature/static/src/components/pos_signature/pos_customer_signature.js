@@ -39,12 +39,15 @@ patch(PosOrder.prototype, {
     _broadcastOrderUpdates(order) {
         const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
     
-        // Ensure only tax data is being sent
-        const tax = 100.00;  // Replace with `order.get_total_tax()` in actual implementation
-        const message = { tax: tax }; // Explicitly set only the tax property
+        // Obtain the tax amount explicitly using order.get_total_tax()
+        const tax = typeof order.get_total_tax === 'function' ? order.get_total_tax() : 0;
+        
+        // Create the message with only the tax value
+        const message = { tax: tax };
+        console.log("Broadcasting Message with only tax:", message); // Log to confirm structure
     
-        console.log("Broadcasting Message:", message); // Verify structure in console
-        displayChannel.postMessage(message); // Send message with tax only
+        // Send only the tax data in the message
+        displayChannel.postMessage(message);
     },
 
     // Method to export additional data for printing
