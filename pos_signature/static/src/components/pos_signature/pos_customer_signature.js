@@ -13,22 +13,29 @@ patch(PosOrder.prototype, {
     setup(options) {
         super.setup(...arguments, options);
     
+        // Retry mechanism with limit
+        let retryCount = 0;
+        const maxRetries = 10; // Limit to avoid infinite loop
+    
         const setupListeners = () => {
             if (this.pos) {
-                console.log("Setting up PosOrder event listener.");
+                console.log("Setting up PosOrder event listener."); 
                 this.pos.on('change:selectedOrder', (newOrder) => {
-                    console.log("Selected order changed:", newOrder);
+                    console.log("Selected order changed:", newOrder); 
                     if (newOrder) {
                         this._broadcastOrderUpdates(newOrder);
                     }
                 });
+            } else if (retryCount < maxRetries) {
+                console.warn(`this.pos is undefined; retrying setup... (${retryCount + 1}/${maxRetries})`);
+                retryCount++;
+                setTimeout(setupListeners, 500); 
             } else {
-                console.warn("this.pos is undefined; retrying setup...");
-                setTimeout(setupListeners, 500); // Retry after 500ms if `this.pos` is still undefined
+                console.error("Unable to set up PosOrder event listener; this.pos remains undefined.");
             }
         };
     
-        setupListeners(); // Initial call to set up listeners or retry
+        setupListeners();
     },
 
     add_line(line) {
