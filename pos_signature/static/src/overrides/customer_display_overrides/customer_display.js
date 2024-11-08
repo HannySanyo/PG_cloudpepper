@@ -20,14 +20,12 @@ patch(CustomerDisplay.prototype, {
 
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         this.customerDisplayChannel.onmessage = (event) => {
-            console.log("Received broadcast message:", event.data);
-            
-            const { total, tax } = event.data;
-
-            if (total !== undefined && tax !== undefined) {
-                this.updateDisplayValues(total, tax);
+            const { tax } = event.data; // Only take tax from the event
+        
+            if (tax !== undefined) {
+                this.updateDisplayValues(tax); // Pass tax to the update function
             } else {
-                console.warn("Broadcast message missing expected total or tax values:", event.data);
+                console.warn("Broadcast message missing expected tax value:", event.data);
             }
         };
 
@@ -38,34 +36,18 @@ patch(CustomerDisplay.prototype, {
         });
     },
 
-    updateDisplayValues(total, tax) {
-        console.log("Updating display values. Total:", total, "Tax:", tax);
+    updateDisplayValues(tax) {
+        console.log("Updating tax display. Tax:", tax);
     
-        total = total ?? 0;
-        tax = tax ?? 0;
+        const taxElement = document.querySelector("#salesTaxDisplay");
     
-        const updateElements = () => {
-            const totalElement = document.querySelector("#totalDisplay");
-            const taxElement = document.querySelector("#salesTaxDisplay");
-    
-            if (totalElement) {
-                totalElement.textContent = total.toFixed(2);
-                console.log("Total successfully updated in DOM:", total.toFixed(2));
-            } else {
-                console.warn("Total display element not found in DOM. Retrying...");
-                setTimeout(updateElements, 500);  // Retry after delay
-            }
-    
-            if (taxElement) {
-                taxElement.textContent = tax.toFixed(2);
-                console.log("Tax successfully updated in DOM:", tax.toFixed(2));
-            } else {
-                console.warn("Tax display element not found in DOM. Retrying...");
-                setTimeout(updateElements, 500);  // Retry after delay
-            }
-        };
-    
-        updateElements();
+        if (taxElement) {
+            taxElement.textContent = tax.toFixed(2); // Update tax in the DOM
+            console.log("Tax successfully updated in DOM:", tax.toFixed(2));
+        } else {
+            console.warn("Tax display element not found in DOM. Retrying...");
+            setTimeout(() => this.updateDisplayValues(tax), 500); // Retry after delay
+        }
     },
 
     // Handle page changes: load tax data if the order display is active
