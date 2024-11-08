@@ -8,6 +8,9 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
         
+        // Attach instance to window for debugging
+        window.customerDisplayInstance = this; // Add this line
+
         this.signature = '';
         this.salesTaxDisplay = '0.00';
         this.currentOrderId = null;
