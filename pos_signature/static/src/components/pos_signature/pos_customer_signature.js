@@ -13,36 +13,36 @@ patch(PosOrder.prototype, {
         super.setup(...arguments);
         console.log("Setting up PosOrder with tax updates.");
 
-        // Defer the setup until the POS order environment is fully ready
+        // Defer the setup until POS is ready
         this.env.bus.on('pos_ready', this, this.initializeTaxUpdate);
     },
 
     initializeTaxUpdate() {
         console.log("POS environment confirmed ready; initializing tax updates.");
 
-        // Attach event listeners to update tax when order changes occur
-        this.env.pos.on('change:selectedOrder', this.updateLocalStorageWithTax.bind(this));
-        this.updateLocalStorageWithTax(); // Initial call to set the tax on startup
+        // Initial call to set the tax on startup
+        this.updateLocalStorageWithTax();
     },
 
+    // Update localStorage with the latest tax data
     updateLocalStorageWithTax() {
-        const order = this.env.pos?.get_order();
+        const order = this.get_order();
         if (order && typeof order.get_total_tax === 'function') {
-            const tax = order.get_total_tax() || 0;
-            const data = { sales_tax: tax, timestamp: new Date().toISOString() };
-
-            console.log("Updating localStorage with tax data:", data);
-            localStorage.setItem('customerDisplayTaxData', JSON.stringify(data));
-        } else {
-            console.warn("Order or get_total_tax not available for updating tax data.");
+            const taxData = { 
+                sales_tax: order.get_total_tax() || 0,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
+            console.log("Updated localStorage with tax data:", taxData);
         }
     },
 
+    // Trigger updates when lines are added or removed
     add_line(line) {
         this._super(line);
         this.updateLocalStorageWithTax();
     },
-    
+
     remove_line(line) {
         this._super(line);
         this.updateLocalStorageWithTax();

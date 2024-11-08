@@ -20,8 +20,6 @@ patch(CustomerDisplay.prototype, {
             const taxData = JSON.parse(localStorage.getItem('customerDisplayTaxData') || '{}');
             if (taxData && taxData.sales_tax !== undefined) {
                 this.updateDisplayValues(taxData.sales_tax);
-            } else {
-                console.warn("No tax data found in localStorage or sales_tax undefined.");
             }
         }, 1000);  // Poll every 1 second
     },
