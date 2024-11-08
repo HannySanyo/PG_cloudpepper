@@ -37,17 +37,10 @@ patch(PosOrder.prototype, {
     },
     
     _broadcastOrderUpdates(order) {
-        console.log("Order Object:", order); // Log the entire order object to inspect its structure
-    
-        if (typeof order.get_total_tax === 'function') {
-            const tax = order.get_total_tax();
-            console.log("Calculated Tax:", tax);
-            const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-            displayChannel.postMessage({ tax });
-            console.log("Broadcast message sent with Tax:", { tax });
-        } else {
-            console.warn("get_total_tax method is missing on the order object.");
-        }
+        const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+        const testTax = 100.00; // Hardcoded test tax value
+        displayChannel.postMessage({ tax: testTax });
+        console.log("Broadcast message sent with Test Tax:", { tax: testTax });
     },
 
     // Method to export additional data for printing
