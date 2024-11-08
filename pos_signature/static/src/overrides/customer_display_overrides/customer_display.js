@@ -6,7 +6,7 @@ import { effect } from "@web/core/utils/reactive";
 import { useRef } from "@odoo/owl";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
-
+// this works
 patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
