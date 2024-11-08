@@ -103,7 +103,7 @@ patch(CustomerDisplay.prototype, {
     
         // If the element exists, update its content
         taxElement.textContent = this.salesTaxDisplay;
-    }
+    },
 
     onClickClear() {
         if (this.ctx) {
