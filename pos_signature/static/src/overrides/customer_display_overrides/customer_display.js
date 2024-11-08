@@ -8,60 +8,49 @@ patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
         
-        // Attach instance to window for debugging
-        window.customerDisplayInstance = this; // Add this line
+        // Debugging: Attach instance to window
+        window.customerDisplayInstance = this;
 
         this.signature = '';
         this.salesTaxDisplay = '0.00';
         this.currentOrderId = null;
+        this.orm = useService("orm");
+        this.my_canvas = useRef('my_canvas');
+        window.signature = this.signature;
+
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-    
-        // Listener to handle order changes
+        
+        // Listen for navigation to the order display screen
         this.customerDisplayChannel.onmessage = (event) => {
             if (event.data && event.data.new_order_id) {
                 this.handleOrderChange(event.data.new_order_id);
             }
         };
-    
-        // Render sales tax only once the DOM is fully loaded
-        document.addEventListener("DOMContentLoaded", () => {
-            this.renderSalesTax();
-        });
-    
-        this.drawing = false;
-        this.checkOrderAndFetchTax();
+
+        // Listen for page changes to trigger tax update on order screen load
+        this.env.bus.on("page:change", this, this.handlePageChange);  // Custom event listener
     },
 
-    // Function to handle order changes
+    // Handle page changes: load tax data if the order display is active
+    async handlePageChange(pageName) {
+        if (pageName === "order_display") {  // Make sure this matches your order display page ID/name
+            console.log("Order display page loaded. Loading tax data...");
+            if (this.currentOrderId) {
+                await this.loadSalesTax(this.currentOrderId);
+                this.renderSalesTax();
+            }
+        }
+    },
+
     async handleOrderChange(newOrderId) {
         if (this.currentOrderId !== newOrderId) {
             this.currentOrderId = newOrderId;
-            console.log("New Order ID received:", newOrderId);
-            await this.loadSalesTax(newOrderId);  // Fetch and load tax for the new order
+            await this.loadSalesTax(newOrderId);
+            this.renderSalesTax();
         }
-    },
-
-    async checkOrderAndFetchTax() {
-        const orderId = await this.getOrderId();  // Dynamically retrieve the order ID
-
-        if (orderId) {
-            console.log("Order ID retrieved:", orderId);
-            this.currentOrderId = orderId;
-            await this.loadSalesTax(orderId);  // Pass the order ID directly
-        } else {
-            console.warn("Order ID could not be retrieved.");
-        }
-    },
-
-    async getOrderId() {
-        // Replace this with the correct logic for dynamically getting the order ID
-        const orderId = 16;  // Example static ID or dynamic logic here
-        return orderId;
     },
 
     async loadSalesTax(orderId) {
-        console.log("loadSalesTax: Fetching sales tax for order ID:", orderId);
-    
         try {
             const response = await fetch('/pos/get_sales_tax', {
                 method: 'POST',
@@ -77,13 +66,10 @@ patch(CustomerDisplay.prototype, {
                 })
             });
             const orderData = await response.json();
-            
-            console.log("loadSalesTax: Received orderData:", orderData);
-    
+
             if (orderData.result && orderData.result.sales_tax !== undefined) {
                 this.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
-                console.log("loadSalesTax: Updated salesTaxDisplay:", this.salesTaxDisplay);
-                this.renderSalesTax();  // Call render after setting the tax
+                this.renderSalesTax();
             } else {
                 console.error("loadSalesTax: Sales tax not found in response:", orderData);
             }
@@ -96,10 +82,9 @@ patch(CustomerDisplay.prototype, {
         const taxElement = document.querySelector("#salesTaxDisplay");
         if (taxElement) {
             taxElement.textContent = this.salesTaxDisplay;
-            console.log("Tax display updated:", this.salesTaxDisplay);
         } else {
             console.warn("Tax display element not found in DOM. Retrying...");
-            setTimeout(() => this.renderSalesTax(), 100); // Retry after 100ms
+            setTimeout(() => this.renderSalesTax(), 500);  // Retry after delay
         }
     },
 
