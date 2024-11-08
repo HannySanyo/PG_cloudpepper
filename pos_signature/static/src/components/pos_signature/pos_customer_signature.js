@@ -13,13 +13,14 @@ patch(PosOrder.prototype, {
     setup(options) {
         super.setup(...arguments, options);
 
+        // Add this interceptor in your code to identify all sources of postMessage on this channel
         const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-        // Override postMessage for logging
         const originalPostMessage = displayChannel.postMessage;
         displayChannel.postMessage = function (message) {
-            console.log("Intercepted postMessage call with message:", message);
-            originalPostMessage.call(displayChannel, message); // Call the original method
+            console.log("Intercepted postMessage call with message:", message); // Log message content
+            console.trace("postMessage call trace"); // Show call stack for debugging
+            originalPostMessage.call(displayChannel, message); // Call the original postMessage
         };
 
         if (this.pos) {
@@ -46,14 +47,13 @@ patch(PosOrder.prototype, {
     _broadcastOrderUpdates(order) {
         const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
     
-        // Obtain the tax amount explicitly using order.get_total_tax()
+        // Only send the tax value
         const tax = typeof order.get_total_tax === 'function' ? order.get_total_tax() : 0;
-        
-        // Create the message with only the tax value
         const message = { tax: tax };
-        console.log("Broadcasting Message with only tax:", message); // Log to confirm structure
     
-        // Send only the tax data in the message
+        console.log("Broadcasting only tax:", message); // Log to confirm structure
+    
+        // Send message with only the tax data
         displayChannel.postMessage(message);
     },
 
