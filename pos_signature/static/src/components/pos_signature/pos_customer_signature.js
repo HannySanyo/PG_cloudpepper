@@ -37,17 +37,14 @@ patch(PosOrder.prototype, {
     },
     
     _broadcastOrderUpdates(order) {
-        const tax = order.get_total_tax();
+        const tax = order.get_total_tax(); // Retrieve the total tax using the correct method
+    
+        console.log("Calculated Tax:", tax); // Log to verify the tax calculation
+    
         const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
     
-        if (typeof tax === 'number') {
-            displayChannel.postMessage({
-                tax: tax,
-            });
-            console.log("Broadcasting Tax to Customer Display:", tax);
-        } else {
-            console.warn("Tax is not a valid number:", tax);
-        }
+        displayChannel.postMessage({ tax });
+        console.log("Broadcast message sent with Tax:", { tax });
     }, 
 
     // Method to export additional data for printing
