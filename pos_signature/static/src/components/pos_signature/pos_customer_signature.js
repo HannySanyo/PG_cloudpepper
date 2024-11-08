@@ -38,9 +38,11 @@ patch(PosOrder.prototype, {
     
     _broadcastOrderUpdates(order) {
         const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-        const testTax = 100.00; // Hardcoded test tax value
-        displayChannel.postMessage({ tax: testTax });
-        console.log("Broadcast message sent with Test Tax:", { tax: testTax });
+        
+        const message = { tax: 100.00 };  // Hardcoded test message with simple structure
+        console.log("Broadcasting Message:", message); // Log the message structure for verification
+    
+        displayChannel.postMessage(message);  // Send the message through the channel
     },
 
     // Method to export additional data for printing

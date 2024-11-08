@@ -20,11 +20,14 @@ patch(CustomerDisplay.prototype, {
 
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         this.customerDisplayChannel.onmessage = (event) => {
+            console.log("Received Broadcast Message:", event.data); // Log entire event data structure
+        
             const { tax } = event.data;
             if (tax !== undefined) {
                 this.updateDisplayValues(tax);
+                console.log("Updating Display with Tax:", tax);
             } else {
-                console.warn("Received message without tax value:", event.data);
+                console.warn("Tax value missing in received message:", event.data);
             }
         };
 
