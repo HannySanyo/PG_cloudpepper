@@ -11,26 +11,36 @@ import { getOnNotified } from "@point_of_sale/utils";
 patch(PosOrder.prototype, {
     setup() {
         super.setup(...arguments);
-        console.log("Setting up PosOrder with direct tax updates.");
-        
+        console.log("Setting up PosOrder with conditional tax updates.");
+
+        // Initialize previous tax value to detect changes
+        this.previousTaxValue = null;
+
         // Update tax in localStorage initially
         this.updateLocalStorageWithTax();
 
-        // Set an interval to periodically update tax in case events miss an update
+        // Set an interval to periodically check for tax updates
         setInterval(() => {
             this.updateLocalStorageWithTax();
         }, 2000); // Check every 2 seconds
     },
 
-    // Function to update tax data in localStorage
+    // Function to update tax data in localStorage if there is a change
     updateLocalStorageWithTax() {
-        const tax = this.get_total_tax ? this.get_total_tax() : 0;
-        const taxData = {
-            sales_tax: tax,
-            timestamp: new Date().toISOString(),
-        };
-        localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
-        console.log("Updated localStorage with tax data:", taxData);
+        const currentTax = this.get_total_tax ? this.get_total_tax() : 0;
+
+        // Only update if the tax has changed
+        if (currentTax !== this.previousTaxValue) {
+            const taxData = {
+                sales_tax: currentTax,
+                timestamp: new Date().toISOString(),
+            };
+            localStorage.setItem('customerDisplayTaxData', JSON.stringify(taxData));
+            console.log("Updated localStorage with tax data:", taxData);
+
+            // Update previous tax value to the current value
+            this.previousTaxValue = currentTax;
+        }
     },
 
     // Override methods that modify the order to ensure localStorage is updated
