@@ -20,12 +20,11 @@ patch(CustomerDisplay.prototype, {
 
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         this.customerDisplayChannel.onmessage = (event) => {
-            const { tax } = event.data; // Only take tax from the event
-        
+            const { tax } = event.data;
             if (tax !== undefined) {
-                this.updateDisplayValues(tax); // Pass tax to the update function
+                this.updateDisplayValues(tax);
             } else {
-                console.warn("Broadcast message missing expected tax value:", event.data);
+                console.warn("Received message without tax value:", event.data);
             }
         };
 
@@ -37,16 +36,14 @@ patch(CustomerDisplay.prototype, {
     },
 
     updateDisplayValues(tax) {
-        console.log("Updating tax display. Tax:", tax);
-    
         const taxElement = document.querySelector("#salesTaxDisplay");
     
         if (taxElement) {
-            taxElement.textContent = tax.toFixed(2); // Update tax in the DOM
-            console.log("Tax successfully updated in DOM:", tax.toFixed(2));
+            taxElement.textContent = tax.toFixed(2);
+            console.log("Updated Sales Tax on Customer Display:", tax);
         } else {
             console.warn("Tax display element not found in DOM. Retrying...");
-            setTimeout(() => this.updateDisplayValues(tax), 500); // Retry after delay
+            setTimeout(() => this.updateDisplayValues(tax), 500);  // Retry after delay
         }
     },
 

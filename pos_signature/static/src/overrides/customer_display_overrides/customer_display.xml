@@ -1,5 +1,6 @@
 <templates id="template" xml:space="preserve">
     <t t-name="pos_signature.CustomerDisplay" t-inherit="point_of_sale.CustomerDisplay" t-inherit-mode="extension">
+        
         <xpath expr="//OrderWidget/following-sibling::div[@t-else]" position="replace">
         </xpath>
         
@@ -60,6 +61,7 @@
             </t>
         </xpath>
 
+        <!-- Tax display in the customer display -->
         <xpath expr="//div[@class='row fs-2 fw-bolder']" position="before">
             <div class="row fs-2">
                 <div class="col text-end">Tax</div>

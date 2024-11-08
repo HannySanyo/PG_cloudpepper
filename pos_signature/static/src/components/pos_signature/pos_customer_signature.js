@@ -26,28 +26,25 @@ patch(PosOrder.prototype, {
         }
     },
 
-    add_line(line) {
+    dd_line(line) {
         this._super(line);
         this._broadcastOrderUpdates(this);
     },
-
+    
     remove_line(line) {
         this._super(line);
         this._broadcastOrderUpdates(this);
     },
-
-    _broadcastOrderUpdates(order) {
-        const tax = order.get_total_tax(); // Retrieve the updated tax value
     
-        // Log for debugging
-        console.log("Broadcasting order update - Calculated Tax:", tax);
+    _broadcastOrderUpdates(order) {
+        const tax = order.get_total_tax();
+        const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
     
         if (typeof tax === 'number') {
-            const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
             displayChannel.postMessage({
-                tax: tax,  // Only broadcast the tax since the total is handled by Odoo
+                tax: tax,
             });
-            console.log("Broadcast message sent with Tax:", tax);
+            console.log("Broadcasting Tax to Customer Display:", tax);
         } else {
             console.warn("Tax is not a valid number:", tax);
         }
