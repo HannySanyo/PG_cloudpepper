@@ -37,12 +37,11 @@ patch(PosOrder.prototype, {
     },
     
     _broadcastOrderUpdates(order) {
-        // Verify that get_total_tax is a valid function on the order object
-        if (typeof order.get_total_tax === 'function') {
-            const tax = order.get_total_tax(); // Call the tax calculation function
-            console.log("Calculated Tax:", tax); // Log the calculated tax to confirm its value
+        console.log("Order Object:", order); // Log the entire order object to inspect its structure
     
-            // Proceed to broadcast the tax if it's valid
+        if (typeof order.get_total_tax === 'function') {
+            const tax = order.get_total_tax();
+            console.log("Calculated Tax:", tax);
             const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
             displayChannel.postMessage({ tax });
             console.log("Broadcast message sent with Tax:", { tax });
