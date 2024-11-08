@@ -58,7 +58,7 @@ patch(CustomerDisplay.prototype, {
 
     async loadSalesTax(orderId) {
         console.log("loadSalesTax: Fetching sales tax for order ID:", orderId);
-
+    
         try {
             const response = await fetch('/pos/get_sales_tax', {
                 method: 'POST',
@@ -76,11 +76,11 @@ patch(CustomerDisplay.prototype, {
             const orderData = await response.json();
             
             console.log("loadSalesTax: Received orderData:", orderData);
-
+    
             if (orderData.result && orderData.result.sales_tax !== undefined) {
                 this.salesTaxDisplay = orderData.result.sales_tax.toFixed(2);
                 console.log("loadSalesTax: Updated salesTaxDisplay:", this.salesTaxDisplay);
-                this.renderSalesTax();
+                this.renderSalesTax();  // Call render after setting the tax
             } else {
                 console.error("loadSalesTax: Sales tax not found in response:", orderData);
             }
@@ -92,7 +92,10 @@ patch(CustomerDisplay.prototype, {
     renderSalesTax() {
         const taxElement = document.querySelector("#salesTaxDisplay");
         if (taxElement) {
-            taxElement.textContent = this.salesTaxDisplay;
+            taxElement.innerText = this.salesTaxDisplay;
+            console.log("Tax element updated with:", this.salesTaxDisplay);  // Debug to confirm update
+        } else {
+            console.warn("Tax display element not found in DOM.");
         }
     },
 
