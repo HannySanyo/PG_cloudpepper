@@ -20,8 +20,12 @@ patch(CustomerDisplay.prototype, {
 
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         this.customerDisplayChannel.onmessage = (event) => {
+            console.log("Received broadcast message:", event.data);
+        
             if (event.data) {
                 this.updateDisplayValues(event.data.total, event.data.tax);
+            } else {
+                console.warn("Broadcast message is missing data:", event.data);
             }
         };
 
@@ -33,15 +37,27 @@ patch(CustomerDisplay.prototype, {
     },
 
     updateDisplayValues(total, tax) {
+        console.log("Updating display values. Total:", total, "Tax:", tax);
+    
+        // Set default values if total or tax is undefined
+        total = total !== undefined ? total : 0;
+        tax = tax !== undefined ? tax : 0;
+    
         const totalElement = document.querySelector("#totalDisplay");  // Adjust selectors as needed
         const taxElement = document.querySelector("#salesTaxDisplay");
-
+    
         if (totalElement) {
             totalElement.textContent = total.toFixed(2);
+            console.log("Total successfully updated in DOM:", total.toFixed(2));
+        } else {
+            console.warn("Total display element not found in DOM.");
         }
-
+    
         if (taxElement) {
             taxElement.textContent = tax.toFixed(2);
+            console.log("Tax successfully updated in DOM:", tax.toFixed(2));
+        } else {
+            console.warn("Tax display element not found in DOM.");
         }
     },
 
