@@ -16,18 +16,19 @@ patch(PosOrder.prototype, {
     },
 
     updateLocalStorageWithTax() {
-        const tax = this.get_total_tax ? this.get_total_tax() : 0;
-        const data = { tax, timestamp: new Date().toISOString() };
-
+        const tax = this.get_total_tax() || 0;
+        const data = { sales_tax: tax, timestamp: new Date().toISOString() };
+    
         console.log("Updating localStorage with tax data:", data);
         localStorage.setItem('customerDisplayTaxData', JSON.stringify(data));
     },
-
+    
+    // Ensure this function is called in events that update the order, e.g., add/remove line:
     add_line(line) {
         this._super(line);
         this.updateLocalStorageWithTax();
     },
-
+    
     remove_line(line) {
         this._super(line);
         this.updateLocalStorageWithTax();

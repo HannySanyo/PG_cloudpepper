@@ -16,22 +16,18 @@ patch(CustomerDisplay.prototype, {
         this.setupBroadcastChannelListener();
     },
 
-    // Set up the BroadcastChannel listener for receiving tax updates
-    setupBroadcastChannelListener() {
-        this.customerDisplayChannel.onmessage = (event) => {
-            console.log("Received message on customer display:", event.data);
-            const { tax } = event.data;
-            if (tax !== undefined) {
-                this.updateDisplayValues(tax);
-            } else {
-                console.warn("Tax value missing in received message:", event.data);
+    pollLocalStorageForTax() {
+        setInterval(() => {
+            const taxData = JSON.parse(localStorage.getItem('customerDisplayTaxData') || '{}');
+            if (taxData && taxData.sales_tax !== undefined) {
+                this.updateDisplayValues(taxData.sales_tax);
             }
-        };
+        }, 1000);  // Poll every 1 second
     },
-
+    
+    // Method to update the tax on the customer display:
     updateDisplayValues(tax) {
         const taxElement = document.querySelector("#salesTaxDisplay");
-
         if (taxElement) {
             taxElement.textContent = tax.toFixed(2);
             console.log("Updated Sales Tax on Customer Display:", tax);
