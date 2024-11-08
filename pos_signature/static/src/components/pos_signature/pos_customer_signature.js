@@ -15,6 +15,13 @@ patch(PosOrder.prototype, {
 
         const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
+        // Override postMessage for logging
+        const originalPostMessage = displayChannel.postMessage;
+        displayChannel.postMessage = function (message) {
+            console.log("Intercepted postMessage call with message:", message);
+            originalPostMessage.call(displayChannel, message); // Call the original method
+        };
+
         if (this.pos) {
             this.pos.on('change:selectedOrder', (newOrder) => {
                 if (newOrder) {
