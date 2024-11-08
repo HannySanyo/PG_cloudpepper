@@ -6,7 +6,7 @@ import { effect } from "@web/core/utils/reactive";
 import { useRef } from "@odoo/owl";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
-// this works
+
 patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
@@ -29,7 +29,8 @@ patch(CustomerDisplay.prototype, {
         // Listen for tax updates from POS through BroadcastChannel
         this.customerDisplayChannel.onmessage = (event) => {
             if (event.data && event.data.sales_tax !== undefined) {
-                console.log("Received sales tax update from POS:", event.data.sales_tax);
+                // Commented out log: Useful to check received sales tax updates
+                // console.log("Received sales tax update from POS:", event.data.sales_tax);
                 this.updateSalesTaxDisplay(event.data.sales_tax);
             }
         };
@@ -54,7 +55,8 @@ patch(CustomerDisplay.prototype, {
             try {
                 const parsedTaxData = JSON.parse(taxData);
                 if (parsedTaxData.sales_tax !== undefined) {
-                    console.log("Loaded initial sales tax from localStorage:", parsedTaxData.sales_tax);
+                    // Commented out log: Useful for checking initial tax load
+                    // console.log("Loaded initial sales tax from localStorage:", parsedTaxData.sales_tax);
                     this.updateSalesTaxDisplay(parsedTaxData.sales_tax);
                 }
             } catch (error) {
@@ -66,7 +68,8 @@ patch(CustomerDisplay.prototype, {
     // Method to update the sales tax display
     updateSalesTaxDisplay(tax) {
         this.state.salesTaxDisplay = parseFloat(tax).toFixed(2);
-        console.log("Updated sales tax display:", this.state.salesTaxDisplay);
+        // Commented out log: Useful for confirming tax display updates
+        // console.log("Updated sales tax display:", this.state.salesTaxDisplay);
     },
 
     // Getter to retrieve the formatted sales tax for the display
