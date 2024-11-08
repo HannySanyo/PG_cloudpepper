@@ -16,7 +16,7 @@
                         t-on-mouseup.prevent="stopDrawing"
                         t-on-mouseout.prevent="stopDrawing"
                         t-on-touchstart.prevent="startDrawing"
-                        t-on-touchmove.prevent="draw"
+                            t-on-touchmove.prevent="draw"
                         t-on-touchend.prevent="stopDrawing"
                         style="cursor:crosshair; background-color:white; border: 2px dotted #CCCCCC; border-radius: 15px; width: 85%; position:relative; left: 50%; transform: translate(-50%)"/>
                     <h3 class="bg-secondary m-2 py-1" style="background-color:white; width: 85%; position:relative; left: 50%; transform: translate(-50%)">
@@ -64,6 +64,16 @@
                     <h1 class="display-2 w-75 mt-2 fw-bold text-center text-muted">Thank you.</h1>
                 </div>
             </t>
+        </xpath>
+
+        <!-- Tax display in the customer display -->
+        <xpath expr="//div[@class='row fs-2 fw-bolder']" position="before">
+            <div class="row fs-2">
+                <div class="col text-end">Tax</div>
+                <div id="salesTaxDisplay" class="col text-end">
+                    <t t-esc="salesTaxDisplayValue"/>
+                </div>
+            </div>
         </xpath>
     </t>
 

@@ -1,7 +1,3 @@
-/* Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) */
-/* See LICENSE file for full copyright and licensing details. */
-/* License URL : <https://store.webkul.com/license.html/> */
-
 import { CustomerDisplay } from "@point_of_sale/customer_display/customer_display";
 import { patch } from "@web/core/utils/patch";
 import { useState } from "@odoo/owl";
@@ -14,34 +10,69 @@ import { useService } from "@web/core/utils/hooks";
 patch(CustomerDisplay.prototype, {
     setup() {
         super.setup(...arguments);
+
+        // Initialize the reactive state for signature and sales tax display
         this.state = useState({
-            signature: ''
-        })
+            signature: '',
+            salesTaxDisplay: '0.00'  // Default sales tax display
+        });
+
+        // Set up required services and references
         this.orm = useService("orm");
         this.my_canvas = useRef('my_canvas');
-        window.signature  = this.signature
+        window.signature = this.signature;
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
+
+        // Load initial sales tax from localStorage
+        this.loadSalesTaxFromLocalStorage();
+
+        // Listen for tax updates from POS through BroadcastChannel
+        this.customerDisplayChannel.onmessage = (event) => {
+            if (event.data && event.data.sales_tax !== undefined) {
+                console.log("Received sales tax update from POS:", event.data.sales_tax);
+                this.updateSalesTaxDisplay(event.data.sales_tax);
+            }
+        };
+
+        // Automatically send signature data if updated
         effect(
-            batched(
-                ({
-                    signature
-                }) => {
-                    if (
-                        !signature
-                    ) {
-                        return;
-                    }
+            batched(({ signature }) => {
+                if (signature) {
                     this.sendSignatureData(signature);
                 }
-            ),
+            }),
             [this.state]
         );
+
         this.drawing = false;
     },
 
-    onClickClear(){
-        if(this.ctx)
+    // Method to load sales tax from localStorage and update the display
+    loadSalesTaxFromLocalStorage() {
+        const taxData = localStorage.getItem('customerDisplayTaxData');
+        if (taxData) {
+            try {
+                const parsedTaxData = JSON.parse(taxData);
+                if (parsedTaxData.sales_tax !== undefined) {
+                    console.log("Loaded initial sales tax from localStorage:", parsedTaxData.sales_tax);
+                    this.updateSalesTaxDisplay(parsedTaxData.sales_tax);
+                }
+            } catch (error) {
+                console.error("Failed to parse sales tax data from localStorage:", error);
+            }
+        }
+    },
+
+    // Method to update the sales tax display
+    updateSalesTaxDisplay(tax) {
+        this.state.salesTaxDisplay = parseFloat(tax).toFixed(2);
+        console.log("Updated sales tax display:", this.state.salesTaxDisplay);
+    },
+
+    onClickClear() {
+        if (this.ctx) {
             this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
+        }
         this.signature_done = false;
     },
 
@@ -55,22 +86,22 @@ patch(CustomerDisplay.prototype, {
         this.signature_done = false;
         this.lastX = 0;
         this.lastY = 0;
-        const rect = canvas.getBoundingClientRect(); // Get canvas position and size
-    
-        // Adjust the coordinates based on the canvas's scale
-        const scaleX = canvas.width / rect.width;   // Horizontal scale
-        const scaleY = canvas.height / rect.height; // Vertical scale
-    
+        const rect = canvas.getBoundingClientRect();
+
+        // Adjust coordinates based on canvas scale
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
         let x, y;
         if (event.type.includes('touch')) {
-            const touch = event.touches[0]; // Handle the first touch point
-            x = (touch.clientX - rect.left) * scaleX; // Scale touch position
+            const touch = event.touches[0];
+            x = (touch.clientX - rect.left) * scaleX;
             y = (touch.clientY - rect.top) * scaleY;
         } else {
-            x = (event.clientX - rect.left) * scaleX; // Scale mouse position
+            x = (event.clientX - rect.left) * scaleX;
             y = (event.clientY - rect.top) * scaleY;
         }
-    
+
         return { x, y };
     },
 
@@ -84,42 +115,34 @@ patch(CustomerDisplay.prototype, {
         this.drawing = false;
         this.ctx?.beginPath(); // Reset the path to avoid connecting lines between strokes
     },
-    
-    // to draw on the canvas
+
+    // Draw on the canvas
     draw(event) {
         if (!this.drawing) return;
-    
+
         const { x, y } = this.getPosition(event);
         this.signature_done = true;
         this.ctx.lineTo(x, y);
         this.ctx.stroke();
-        this.ctx.beginPath(); // Reset the path
-        this.ctx.moveTo(x, y); // Move to the current position for the next line segment
-    
-        [this.lastX, this.lastY] = [x, y]; // Update the last coordinates
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+
+        [this.lastX, this.lastY] = [x, y];
     },
 
-    async sendSignatureData(signature){
+    async sendSignatureData(signature) {
         if (this.session.type === "local") {
-            this.customerDisplayChannel.postMessage({test:'test',signature: signature})
+            this.customerDisplayChannel.postMessage({ test: 'test', signature: signature });
         }
         if (this.session.type === "remote") {
-            const data = await rpc(
-                `/pos-customer-display/${this.session.config_id}`,
-                {
-                    access_token: this.session.access_token,
-                    signature: this.state.signature || false,
-                }
-            );
-            // await this.orm.call("pos.config", "update_customer_signature",[
-            //     [this.session.config_id],
-            //     this.state.signature,
-            //     this.session.access_token
-            // ]);
+            await rpc(`/pos-customer-display/${this.session.config_id}`, {
+                access_token: this.session.access_token,
+                signature: this.state.signature || false,
+            });
         }
     },
 
-    onSubmitSignature(){
+    onSubmitSignature() {
         this.state.signature = this.my_canvas.el.toDataURL('image/png').replace('data:image/png;base64,', "");
     }
-})
+});
