@@ -21,11 +21,13 @@ patch(CustomerDisplay.prototype, {
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
         this.customerDisplayChannel.onmessage = (event) => {
             console.log("Received broadcast message:", event.data);
-        
-            if (event.data) {
-                this.updateDisplayValues(event.data.total, event.data.tax);
+            
+            const { total, tax } = event.data;
+
+            if (total !== undefined && tax !== undefined) {
+                this.updateDisplayValues(total, tax);
             } else {
-                console.warn("Broadcast message is missing data:", event.data);
+                console.warn("Broadcast message missing expected total or tax values:", event.data);
             }
         };
 
@@ -39,8 +41,8 @@ patch(CustomerDisplay.prototype, {
     updateDisplayValues(total, tax) {
         console.log("Updating display values. Total:", total, "Tax:", tax);
     
-        total = total ?? 0;  // Default to 0 if undefined
-        tax = tax ?? 0;      // Default to 0 if undefined
+        total = total ?? 0;
+        tax = tax ?? 0;
     
         const updateElements = () => {
             const totalElement = document.querySelector("#totalDisplay");
@@ -51,7 +53,7 @@ patch(CustomerDisplay.prototype, {
                 console.log("Total successfully updated in DOM:", total.toFixed(2));
             } else {
                 console.warn("Total display element not found in DOM. Retrying...");
-                setTimeout(updateElements, 500);
+                setTimeout(updateElements, 500);  // Retry after delay
             }
     
             if (taxElement) {
@@ -59,7 +61,7 @@ patch(CustomerDisplay.prototype, {
                 console.log("Tax successfully updated in DOM:", tax.toFixed(2));
             } else {
                 console.warn("Tax display element not found in DOM. Retrying...");
-                setTimeout(updateElements, 500);
+                setTimeout(updateElements, 500);  // Retry after delay
             }
         };
     

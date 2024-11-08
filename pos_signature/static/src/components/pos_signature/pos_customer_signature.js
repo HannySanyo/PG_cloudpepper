@@ -45,15 +45,15 @@ patch(PosOrder.prototype, {
         this._broadcastOrderUpdates();
     },
 
-    _broadcastOrderUpdates() {  // Ensure only one _broadcastOrderUpdates function exists here
+    _broadcastOrderUpdates() {
         const total = this.get_total_with_tax();
         const tax = this.get_total_tax();
 
         if (typeof total === 'number' && typeof tax === 'number') {
             const displayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
             displayChannel.postMessage({
-                total: total,
-                tax: tax
+                total: total,   // Ensure this key matches what CustomerDisplay expects
+                tax: tax        // Ensure this key matches what CustomerDisplay expects
             });
         } else {
             console.warn("Total or tax is not a valid number:", total, tax);
