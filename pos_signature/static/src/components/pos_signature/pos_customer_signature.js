@@ -3,25 +3,25 @@ import { _t } from "@web/core/l10n/translation";
 import { patch } from "@web/core/utils/patch";
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 import { SignaturePopupWidget } from "@pos_signature/app/popups/signature_popup/signature_popup";
-import { AlertDialog } from "@web/core/confirmatzion_dialog/confirmation_dialog";
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { WaitingForSignature } from "@pos_signature/app/popups/waiting_for_signature_popup/waiting_for_signature_popup";
 import { getOnNotified } from "@point_of_sale/utils";
 
-// Patch PosOrder to listen for order changes and broadcast updated data
+// Patch PosOrder to handle tax data updates in local storage
 patch(PosOrder.prototype, {
-
+    
     setup() {
         super.setup(...arguments);
-
-        // Initialize order event listener without using `this.pos`
+        // Directly initialize event listeners without `this.pos`
         this.initializeOrderListener();
     },
 
     initializeOrderListener() {
+        // Poll until `get_total_tax` is available, then start broadcasting
         const orderListenerInterval = setInterval(() => {
             if (typeof this.get_total_tax === 'function') {
                 this.updateLocalStorageWithTax();
-                clearInterval(orderListenerInterval); // Stop interval once ready
+                clearInterval(orderListenerInterval); // Stop interval once function is available
             } else {
                 console.warn("Waiting for `get_total_tax` to be available on PosOrder.");
             }
@@ -47,7 +47,7 @@ patch(PosOrder.prototype, {
     },
 
     export_for_printing(baseUrl, headerData) {
-        console.log("Exporting for printing with baseUrl:", baseUrl, "and headerData:", headerData); // Debug print export
+        console.log("Exporting for printing with baseUrl:", baseUrl, "and headerData:", headerData);
         return {
             ...super.export_for_printing(...arguments),
             signature: this.signature,
@@ -61,60 +61,58 @@ patch(PosOrder.prototype, {
             waiting_for_signature: this.waiting_for_signature || false,
             terms_conditions_link: this.config_id.terms_conditions_link || false,
         };
-        console.log("Customer display data:", data); // Log display data
+        console.log("Customer display data:", data);
         return data;
     }
 });
 
-// Patch PaymentScreen to initialize broadcasting on setup and broadcast changes in sales tax
+// Patch PaymentScreen to initialize customer display channel and handle tax broadcasting without `this.pos`
 patch(PaymentScreen.prototype, {
     setup() {
         super.setup(...arguments);
-        console.log("Setting up PaymentScreen."); // Log setup call
+        console.log("Setting up PaymentScreen.");
 
-        if (this.pos) {
-            const currentOrder = this.pos.get_order();
-            console.log("Current order at PaymentScreen setup:", currentOrder); // Log initial order
+        const customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-            if (this.pos.config.customer_display_type === "local") {
+        // Listen for messages related to signature updates
+        customerDisplayChannel.onmessage = (event) => {
+            console.log("Received customer display message:", event.data);
+            const order = this.env.pos.get_order();
+            if (order && event.data.signature) {
+                order.signature = event.data.signature;
+            }
+        };
+
+        // Broadcast sales tax when `get_total_tax` is available on current order
+        this.broadcastOrderUpdates();
+    },
+
+    broadcastOrderUpdates() {
+        const order = this.env.pos.get_order();
+
+        // Ensure function availability without directly using `this.pos`
+        const taxListenerInterval = setInterval(() => {
+            if (order && typeof order.get_total_tax === 'function') {
+                const tax = order.get_total_tax();
                 const customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
 
-                customerDisplayChannel.onmessage = (event) => {
-                    console.log("Received customer display message:", event.data); // Log received message
-                    if (event.data.signature) {
-                        currentOrder.signature = event.data.signature;
-                    }
-                };
-
-                this.pos.on('change:selectedOrder', (newOrder) => {
-                    if (newOrder && typeof newOrder.get_total_tax === 'function') {
-                        console.log("Broadcasting sales tax for new order:", newOrder.get_total_tax());
-                        customerDisplayChannel.postMessage({
-                            new_order_id: newOrder.id,
-                            sales_tax: newOrder.get_total_tax()
-                        });
-                    }
+                console.log("Broadcasting sales tax for order:", tax);
+                customerDisplayChannel.postMessage({
+                    new_order_id: order.id,
+                    sales_tax: tax,
                 });
-            }
 
-            if (this.pos.config.customer_display_type === "remote") {
-                this.onNotified = getOnNotified(this.pos.bus, this.pos.config.access_token);
-                this.onNotified("UPDATE_CUSTOMER_SIGNATURE", (signature) => {
-                    console.log("Updating signature remotely:", signature);
-                    currentOrder.signature = signature;
-                });
+                clearInterval(taxListenerInterval); // Stop interval once broadcast is successful
             }
-        } else {
-            console.warn("this.pos is undefined in PaymentScreen setup.");
-        }
+        }, 500);
     },
 
     async add_signature(event) {
-        const currentOrder = this.pos?.get_order();
-        console.log("Adding signature, current order:", currentOrder); // Debug signature addition
+        const currentOrder = this.env.pos?.get_order();
+        console.log("Adding signature, current order:", currentOrder);
 
-        if (this.pos?.config.add_signature_from === 'customer_display' && 
-            ['local', 'remote'].includes(this.pos.config.customer_display_type)) {
+        if (this.env.pos?.config.add_signature_from === 'customer_display' && 
+            ['local', 'remote'].includes(this.env.pos.config.customer_display_type)) {
             if (currentOrder?.signature === '') {
                 currentOrder.waiting_for_signature = true;
                 console.log("Waiting for signature from customer display.");
@@ -126,15 +124,15 @@ patch(PaymentScreen.prototype, {
     },
 
     async validateOrder(isForceValidate) {
-        if (this.pos?.config.enable_pos_signature && this.pos.config.set_signature_mandatory) {
-            if (this.pos?.get_order().signature === '') {
-                console.warn("Signature required but missing."); // Warn if signature is missing
+        if (this.env.pos?.config.enable_pos_signature && this.env.pos.config.set_signature_mandatory) {
+            if (this.env.pos?.get_order().signature === '') {
+                console.warn("Signature required but missing.");
                 this.env.services.dialog.add(AlertDialog, {
                     title: _t("Signature Required"),
                     body: _t("Please Add Signature"),
                 });
             } else {
-                console.log("Validating order with signature."); // Confirm validation
+                console.log("Validating order with signature.");
                 super.validateOrder(...arguments);
             }
         } else {
