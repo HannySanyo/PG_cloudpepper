@@ -69,6 +69,11 @@ patch(CustomerDisplay.prototype, {
         console.log("Updated sales tax display:", this.state.salesTaxDisplay);
     },
 
+    // Getter to retrieve the formatted sales tax for the display
+    get salesTaxDisplayValue() {
+        return this.state.salesTaxDisplay;
+    },
+
     onClickClear() {
         if (this.ctx) {
             this.ctx.clearRect(0, 0, this.my_canvas.el.width, this.my_canvas.el.height);
