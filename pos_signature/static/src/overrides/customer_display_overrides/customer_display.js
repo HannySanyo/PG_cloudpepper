@@ -13,7 +13,6 @@ patch(CustomerDisplay.prototype, {
 
         // Initialize the BroadcastChannel for real-time updates
         this.customerDisplayChannel = new BroadcastChannel("UPDATE_CUSTOMER_DISPLAY");
-        this.setupBroadcastChannelListener();
     },
 
     pollLocalStorageForTax() {
